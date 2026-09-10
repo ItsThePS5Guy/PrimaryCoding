@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ultimate Fun & Learn Zone</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;900&display=swap" rel="stylesheet">
+<style>
+  /* This style is for the confetti canvas to ensure it's on top */
+  #confetti-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10000;
+  }
+
+  /* === Base Layout and Theme === */
+  body {
+    font-family: 'Montserrat', Inter, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: #000000;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    background-image: url('https://files.catbox.moe/kgsa7r.png');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  .app {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 900px;
+    width: 90%;
+    background: #393939;
+    padding: 28px 30px 36px;
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(2, 6, 23, 0.7);
+    transition: background-color 0.3s ease, filter 0.5s ease;
+  }
+
+  /* NEW CLASS FOR SHAKE ANIMATION */
+  .app.shake {
+    animation: screen-shake 0.4s ease-in-out;
+  }
+
+  /* --- Special Screens (Blur, Countdown, Game Over) --- */
+  .blur-background {
+    filter: blur(8px) brightness(0.6);
+    pointer-events: none;
+    user-select: none;
+  }
+  #countdown-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; justify-content: center; align-items: center;
+    font-size: 10rem; font-weight: 900; color: white;
+    text-shadow: 0 0 20px rgba(0,0,0,0.7); z-index: 10001;
+  }
+  .countdown-text { animation: countdown-zoom 1s ease-out forwards; }
+  #game-over-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 10002; color: white; text-align: center; animation: fadeIn 0.5s ease;
+  }
+  #game-over-screen h2 {
+    font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 5rem;
+    text-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px;
+  }
+  .game-over-buttons button {
+    font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.2rem;
+    color: #000000; background-color: #b48a2a; border: none;
+    padding: 15px 30px; margin: 0 10px; border-radius: 12px;
+    cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+  }
+  .game-over-buttons button:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
+
+  .game-over-credits {
+    margin-top: 25px;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+  .game-over-credits p {
+    margin: 4px 0;
+  }
+
+  /* --- Light Mode Overrides --- */
+  body.light { background: #f0f0f0; color: #012; }
+  body.light .app { background: #ffffff; box-shadow: 0 10px 35px rgba(0, 0, 0, 0.1); }
+  body.light #progress-wrapper, body.light #scratch-progress-wrapper { background: #e0e0e0; border-color: #d0d0d0; }
+  body.light .game-container, body.light .puzzle { background: #f9f9f9; border-color: rgba(0, 0, 0, 0.08); }
+  body.light input[type="text"], body.light input[type="number"] { background: #f0f0f0; color: #012; border-color: #cccccc; }
+  body.light pre { color: #2c3e50; background: #f4f6f8; box-shadow: inset 0 0 5px #d0d0d0; }
+  body.light .desc, body.light .game-container h2, body.light #status { color: #333; }
+  body.light #lives-display { color: #c0392b; }
+  body.light footer { color: #555; }
+  body.light #language-select, body.light .game-toggle-btn, body.light #hangman-mode-select { background: #f0f0f0; color: #012; border-color: #ccc; }
+  body.light button { background: #b48a2a; color: #fff; }
+  body.light .game-toggle-btn.active { background: #b48a2a; color: #fff; }
+  body.light #theme-toggle, body.light #music-toggle { background: #f0f0f0; color: #012; border-color: #ccc; }
+  body.light #math-options label, body.light #math-difficulty label { color: #333; }
+  body.light .position-controls { background: #e9e9e9;}
+
+  /* === Header and UI Elements === */
+  .header-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  h1 { margin: 0; font-weight: 900; font-size: 1.9rem; letter-spacing: 0.02em; color: #e0c08b; flex-grow: 1; }
+  body.light h1 { color: #b48a2a; }
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+  .game-toggle-btn { background: none; border: 1px solid #555; color: #fff; font-size: 0.9rem; padding: 6px 28px 6px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; position: relative; }
+  .game-toggle-btn.active { background: #ae853e; color: #012; border-color: #ae853e; }
+  
+  /* NEW: Styles for the lock feature */
+  .game-toggle-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .game-toggle-btn:disabled::after {
+    content: '🔒';
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+  }
+  
+  #theme-toggle, #music-toggle { background: none; border: 1px solid #555; color: #fff; font-size: 0.9rem; padding: 6px 10px; border-radius: 8px; }
+  #language-select { padding: 7px 10px; border-radius: 8px; border: 1px solid #555; background: #191919; color: #fff; cursor: pointer; font-family: 'Montserrat', Inter, system-ui, sans-serif; font-weight: 500; outline: none; }
+  .score { font-size: 1rem; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 8px; }
+  .trophy { font-size: 1.2rem; display: inline-block; animation: pulse 1.5s infinite ease-in-out; }
+  .desc { color: #acacac; margin-bottom: 14px; font-size: 1rem; line-height: 1.4; }
+  #progress-wrapper { width: 100%; height: 12px; background: #191919; border-radius: 10px; margin: 10px 0 18px; overflow: hidden; border: 1px solid #555; }
+  #progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #ae853e, #c7a15f); border-radius: 10px; transition: width 0.5s ease; }
+  #lives-display { color: #ffffff; font-weight: 700; font-size: 0.9rem; margin-bottom: 10px; }
+  .heart {
+    font-size: 1.1em;
+    margin-right: 2px;
+    color: #ff4d4d;
+    display: inline-block;
+    animation: heartbeat 2s infinite ease-in-out;
+  }
+  .heart:nth-child(2) { animation-delay: 0.2s; }
+  .heart:nth-child(3) { animation-delay: 0.4s; }
+  .heart.lost { animation: wobble 0.5s ease-out; }
+
+  #timer { font-weight: 700; font-size: 0.9rem; margin-bottom: 18px; }
+
+  /* === Game Containers & Puzzles === */
+  .game-container {
+    background: #585555; padding: 22px 24px; border-radius: 12px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center; flex-direction: column;
+  }
+  .game-container h2 { font-weight: 900; font-size: 1.5rem; color: #e0c08b; margin-bottom: 15px; }
+  .puzzle { background: #585555; padding: 22px 24px; border-radius: 12px; margin-bottom: 22px; display: flex; flex-wrap: wrap; gap: 20px; }
+  .puzzle > div:first-child { flex: 1 1 600px; min-width: 280px; }
+  .puzzle > div:last-child { width: 180px; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+  pre { background: #191919; padding: 18px 22px; border-radius: 10px; color: #ffffff; margin: 10px 0 14px; font-family: "Source Code Pro", monospace; font-size: 1rem; white-space: pre-wrap; box-shadow: inset 0 0 5px #333; user-select: text; }
+  input[type="text"], input[type="number"] { width: 100%; padding: 14px 16px; border-radius: 10px; border: 1.8px solid #373737; background: #191919; color: #eaf6ff; font-family: 'Montserrat', Inter, system-ui, sans-serif; font-size: 1rem; font-weight: 500; box-sizing: border-box; caret-color: #ae853e; }
+  button { background: #ae853e; color: #012; border: none; padding: 12px 18px; border-radius: 10px; font-weight: 900; font-family: 'Montserrat', Inter, system-ui, sans-serif; font-size: 1rem; cursor: pointer; transition: background-color 0.25s ease, transform 0.1s ease; }
+
+  /* --- Math Game Specific --- */
+  #math-score-display { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; }
+  #math-question { font-size: 1.5rem; font-weight: 900; margin-bottom: 15px; }
+  #math-feedback { margin-top: 15px; font-weight: bold; min-height: 1.2em; }
+  #math-options, #math-difficulty { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; user-select: none; }
+  #math-options label, #math-difficulty label { cursor: pointer; }
+
+  /* --- Rock Paper Scissors Specific --- */
+  #rps-container h2 { margin-bottom: 20px; }
+  .rps-scores { display: flex; justify-content: space-around; width: 100%; max-width: 300px; margin-bottom: 25px; font-size: 1.2rem; font-weight: bold; }
+  .rps-choices { display: flex; justify-content: space-around; align-items: center; width: 100%; margin-bottom: 25px; }
+  .rps-player-choice, .rps-computer-choice { border: 3px solid #777; border-radius: 12px; width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; font-size: 4rem; background: rgba(0,0,0,0.2); transition: transform 0.3s ease; }
+  .rps-vs { font-size: 3rem; font-weight: 900; color: #e0c08b; }
+  .rps-buttons { display: flex; gap: 15px; margin-bottom: 20px; }
+  .rps-buttons button { font-size: 2rem; width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; line-height: 1; }
+  .rps-buttons button:hover { transform: translateY(-3px) scale(1.05); }
+  #rps-result { min-height: 1.5em; font-size: 1.3rem; font-weight: bold; transition: color 0.3s; }
+  .rps-reveal { animation: rps-reveal-anim 0.4s ease-out forwards; }
+  @keyframes rps-reveal-anim { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  body.light .rps-player-choice, body.light .rps-computer-choice { background: rgba(0,0,0,0.05); border-color: #ccc; }
+  body.light .rps-vs { color: #b48a2a; }
+
+  /* --- Hangman Game Specific --- */
+  .hangman-figure svg { width: 150px; height: 180px; }
+  .hangman-figure svg .figure-part { stroke: #fff; stroke-width: 4px; fill: none; stroke-linecap: round; transition: opacity 0.3s ease-in-out; opacity: 0; }
+  .hangman-figure svg .gantry { opacity: 1; } /* Gantry is always visible */
+  .hangman-figure svg .figure-part.visible { opacity: 1; }
+  body.light .hangman-figure svg .figure-part { stroke: #333; }
+  #hangman-word { font-size: 2rem; letter-spacing: 0.5em; margin: 20px 0; font-family: 'Source Code Pro', monospace; color: #e0c08b; min-height: 1.5em;}
+  body.light #hangman-word { color: #b48a2a; }
+  #hangman-keyboard { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 450px; margin: 20px 0;}
+  #hangman-keyboard button { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1rem; width: 40px; height: 40px; padding: 0; min-width: 40px; }
+  #hangman-keyboard button:disabled { background-color: #555; color: #888; cursor: not-allowed; opacity: 0.7; }
+  #hangman-keyboard button.correct { background-color: #27ae60; color: white; }
+  #hangman-keyboard button.incorrect { background-color: #c0392b; color: white; }
+  body.light #hangman-keyboard button:disabled { background-color: #ccc; color: #777; }
+  #hangman-message { margin-top: 15px; font-size: 1.2rem; min-height: 1.5em; font-weight: bold; }
+
+  /* === Scratch Tutorial Styles === */
+  #scratch-progress-wrapper {
+      width: 100%; height: 12px; background: #191919; border-radius: 10px;
+      margin: 10px 0 18px; overflow: hidden; border: 1px solid #555;
+  }
+  #scratch-progress-bar {
+      height: 100%; width: 0%; background: linear-gradient(90deg, #2ecc71, #27ae60);
+      border-radius: 10px; transition: width 0.5s ease;
+  }
+  .tutorial-step {
+      display: none; /* Hide steps by default */
+      border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 15px;
+  }
+  .tutorial-step.active { display: block; } /* Show active step */
+  .tutorial-step:last-child { border-bottom: none; }
+  .scratch-nav button { width: 48%; }
+  .scratch-nav button:disabled { background-color: #555; cursor: not-allowed; opacity: 0.7; }
+  body.light .scratch-nav button:disabled { background-color: #ccc; color: #777; }
+  .scratch-image { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; }
+  .tutorial-content a { color: #76c7ff; }
+  body.light .tutorial-content a { color: #007bff; }
+
+
+  /* --- Misc & Animations --- */
+  .explanation { margin-top: 10px; padding: 10px; background-color: #2c2c2c; border-left: 4px solid #ae853e; font-size: 0.9rem; line-height: 1.5; text-align: left; }
+  body.light .explanation { background-color: #f0f0f0; border-left-color: #b48a2a; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  @keyframes countdown-zoom { 0% { transform: scale(0.5); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.2); opacity: 0; } }
+
+  @keyframes heartbeat {
+    0%   { transform: scale(1); }
+    15%  { transform: scale(1.15); }
+    30%  { transform: scale(1); }
+    45%  { transform: scale(1.15); }
+    60%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes wobble {
+    0% { transform: translateX(0%); }
+    15% { transform: translateX(-5%) rotate(-5deg); }
+    30% { transform: translateX(5%) rotate(5deg); }
+    45% { transform: translateX(-5%) rotate(-5deg); }
+    60% { transform: translateX(5%) rotate(5deg); }
+    75% { transform: translateX(-2%) rotate(-2deg); }
+    100% { transform: translateX(0%); }
+  }
+
+  /* NEW KEYFRAME FOR SCREEN SHAKE */
+  @keyframes screen-shake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(calc(-50% - 8px), -50%); }
+    20%, 40%, 60%, 80% { transform: translate(calc(-50% + 8px), -50%); }
+  }
+
+  @media (max-width: 720px) {
+    .puzzle { flex-direction: column; }
+    .puzzle > div:last-child { width: 100%; flex-direction: row; gap: 12px; }
+    .header-container { flex-direction: column; align-items: stretch; }
+  }
+  
+  /* === Space Invaders Styles === */
+  #gameCanvas {
+      display: block;
+      margin: auto;
+      background: #000;
+      border: 2px solid #fff;
+      max-width: 100%;
+      height: auto;
+  }
+
+</style>
+</head>
+<body style="position: relative; min-height: 100vh;">
+  <img  
+    src="https://files.catbox.moe/7347cb.png"  
+    id="background-logo"  
+    alt="Background Logo"  
+    width="8%"
+    style="position: absolute; top: 20px; left: 20px;"
+  >
+
+  <canvas id="confetti-canvas"></canvas>
+
+</body>
+
+<div class="achievement" id="achievement"></div>
+<audio id="background-music" loop src="https://files.catbox.moe/i5fbre.mp3"></audio>
+<audio id="correctAnswerSound" src="https://files.catbox.moe/sgo48p.wav" preload="auto"></audio>
+<div id="countdown-overlay"></div>
+<div id="game-over-screen">
+  <h2 data-i18n-key="ui.gameOverTitle">GAME OVER</h2>
+  <div class="game-over-buttons">
+    <button id="try-again-btn" data-i18n-key="ui.tryAgain">Try Again</button>
+    <button id="quit-btn" data-i18n-key="ui.quit">Quit</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header-container">
+    <h1 data-i18n-key="ui.mainTitle">Fun & Learn Zone</h1>
+    <div class="header-controls">
+        <button class="game-toggle-btn active" data-game="scratch" data-i18n-key="ui.gameScratchTutorial">🛠️ Scratch Tutorial</button>
+        <button class="game-toggle-btn" data-game="code" data-i18n-key="ui.gameScratchBlocks">🧩 Scratch Blocks</button>
+        <button class="game-toggle-btn" data-game="math" disabled data-i18n-key="ui.gameMath">🧮 Math</button>
+        <button class="game-toggle-btn" data-game="rps" disabled data-i18n-key="ui.gameRPS">💎 RPS</button>
+        <button class="game-toggle-btn" data-game="hangman" disabled data-i18n-key="ui.gameHangman">💀 Hangman</button>
+        <button class="game-toggle-btn" data-game="invaders" disabled data-i18n-key="ui.gameInvaders">👾 Invaders</button>
+        <select id="language-select" style="margin-left: 10px;"></select>
+        <button id="theme-toggle">🌓</button>
+        <button id="music-toggle">🎵</button>
+    </div>
+  </div>
+
+
+  <div id="code-container">
+    <div id="score-display" class="score"><span data-i18n-key="ui.score">Score</span>: 0</div>
+    <div id="progress-wrapper"><div id="progress-bar"></div></div>
+    <div id="game-stats-container">
+        <div id="lives-display"><span data-i18n-key="ui.lives">Lives</span>: <span id="hearts"></span></div>
+        <div id="timer"><span data-i18n-key="ui.time">Time</span>: <span id="time-left">--</span>s</div>
+    </div>
+    <div class="desc">
+        <span data-i18n-key="ui.startPrompt">Enter your name to start</span>: <input id="player-name" data-i18n-placeholder-key="ui.yourName" placeholder="Your name">
+    </div>
+    <div id="puzzles"></div>
+    <div id="leaderboard"></div>
+  </div>
+
+  <div id="math-container" class="game-container" style="display: none;">
+    <h2 data-i18n-key="math.title">Math Challenge</h2>
+    <div id="math-score-display">Score: 0</div>
+    <div id="math-options">
+      <label><input type="radio" name="math-op" value="add" checked> <span data-i18n-key="math.add">Addition</span></label>
+      <label><input type="radio" name="math-op" value="subtract"> <span data-i18n-key="math.sub">Subtraction</span></label>
+      <label><input type="radio" name="math-op" value="multiply"> <span data-i18n-key="math.mul">Multiplication</span></label>
+    </div>
+    <div id="math-difficulty">
+        <label><input type="radio" name="math-diff" value="easy" checked> <span data-i18n-key="math.easy">Easy</span></label>
+        <label><input type="radio" name="math-diff" value="medium"> <span data-i18n-key="math.medium">Medium</span></label>
+        <label><input type="radio" name="math-diff" value="hard"> <span data-i18n-key="math.hard">Hard</span></label>
+    </div>
+    <div id="math-question"></div>
+    <input type="number" id="math-answer" data-i18n-placeholder-key="math.yourAnswer" placeholder="Your answer..." />
+    <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+        <button id="submit-answer" style="flex: 1;" data-i18n-key="math.submit">Submit</button>
+        <button id="reset-math" style="flex: 1;" data-i18n-key="math.reset">Reset</button>
+    </div>
+    <div id="math-feedback"></div>
+  </div>
+
+  <div id="rps-container" class="game-container" style="display: none;">
+    <h2 data-i18n-key="rps.title">Rock Paper Scissors</h2>
+    <div class="rps-scores">
+        <div id="rps-player-score"><span data-i18n-key="rps.player">Player</span>: 0</div>
+        <div id="rps-computer-score"><span data-i18n-key="rps.computer">Computer</span>: 0</div>
+    </div>
+    <div class="rps-choices">
+        <div class="rps-player-choice" id="rps-player-choice-display">?</div>
+        <div class="rps-vs">VS</div>
+        <div class="rps-computer-choice" id="rps-computer-choice-display">?</div>
+    </div>
+    <div id="rps-result" data-i18n-key="rps.chooseMove">Choose your move!</div>
+    <div class="rps-buttons">
+        <button id="rps-rock">🪨</button>
+        <button id="rps-paper">📄</button>
+        <button id="rps-scissors">✂️</button>
+    </div>
+  </div>
+
+  <div id="hangman-container" class="game-container" style="display: none;">
+    <h2 data-i18n-key="hangman.title">Hangman</h2>
+    <div style="margin-bottom: 15px;">
+        <label for="hangman-mode-select" style="margin-right: 8px;" data-i18n-key="hangman.mode">Mode:</label>
+        <select id="hangman-mode-select" style="padding: 6px; border-radius: 8px; border: 1px solid #555; background: #191919; color: #fff; cursor: pointer;">
+            <option value="regular" data-i18n-key="hangman.regular">Regular</option>
+            <option value="maths" data-i18n-key="hangman.mathsTerms">Maths Terms</option>
+        </select>
+    </div>
+    <div class="hangman-figure">
+        <svg height="210" width="170" id="hangman-svg">
+            <line x1="20" y1="200" x2="100" y2="200" class="figure-part gantry" />
+            <line x1="60" y1="200" x2="60" y2="20" class="figure-part gantry" />
+            <line x1="60" y1="20" x2="140" y2="20" class="figure-part gantry" />
+            <line x1="140" y1="20" x2="140" y2="50" class="figure-part gantry" />
+            <circle cx="140" cy="70" r="20" class="figure-part" id="hangman-head" />
+            <line x1="140" y1="90" x2="140" y2="140" class="figure-part" id="hangman-body" />
+            <line x1="140" y1="110" x2="110" y2="90" class="figure-part" id="hangman-left-arm" />
+            <line x1="140" y1="110" x2="170" y2="90" class="figure-part" id="hangman-right-arm" />
+            <line x1="140" y1="140" x2="110" y2="170" class="figure-part" id="hangman-left-leg" />
+            <line x1="140" y1="140" x2="170" y2="170" class="figure-part" id="hangman-right-leg" />
+        </svg>
+    </div>
+    <div id="hangman-word"></div>
+    <div id="hangman-message"></div>
+    <div id="hangman-keyboard"></div>
+    <button id="hangman-reset" data-i18n-key="hangman.newWord">New Word</button>
+  </div>
+
+<div id="scratch-container" class="game-container" style="display: none; max-height: 70vh; overflow-y: auto; align-items: flex-start; text-align: left; flex-wrap:wrap;">
+    <div style="width: 100%;">
+        <h2 data-i18n-key="scratch.title">How to Make Space Invaders in Scratch</h2>
+        <div id="scratch-progress-wrapper"><div id="scratch-progress-bar"></div></div>
+    </div>
+    <div class="tutorial-content" style="width: 100%;">
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s1_title">Step 1: Setting up the Stage</h3>
+            <p data-i18n-key="scratch.s1_desc">Start a new project in <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> and change the stage backdrop to the one called "Stars".</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-add-backdrop.png" alt="Add Stars backdrop in Scratch" class="scratch-image">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s2_title">Step 2: The Spaceship/Rocket Sprite</h3>
+            <p data-i18n-key="scratch.s2_desc">Delete the default <em>Cat</em> sprite, add the <em>Rocketship</em> sprite, and resize it to <strong>35%</strong>. Remove its 5th costume. Then add the necessary code blocks to set the backdrop, animate the rocket, and control its movement with the arrow keys.</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-left-right-rocket.png" alt="Rocket movement and animation code" class="scratch-image">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s3_title">Step 3: The Invader Sprite</h3>
+            <p data-i18n-key="scratch.s3_desc">Add the <em>Gobo</em> sprite and resize it to <strong>40%</strong>. Then, add the code to position the invader at the top, animate it, and make it move across the screen, dropping down and reversing direction when it hits an edge.</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-invader-movement.png" alt="Invader movement code" class="scratch-image">
+        </div>
+        
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s4_title">Step 4: Adding a Game Over Screen</h3>
+            <p data-i18n-key="scratch.s4_desc">Create a new "Game Over" backdrop using the paint tool. Then, add code to the <em>Invader</em> sprite to detect when it touches the rocket. When it does, the game will switch to the "Game Over" backdrop and stop all scripts.</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-game-over-trigger.png" alt="Game Over trigger code" class="scratch-image" style="max-width: 262px;">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s5_title">Step 5: Firing a Laser Beam</h3>
+            <p data-i18n-key="scratch.s5_desc">Paint a new sprite for the laser beam. Then, add the code to make the rocket fire a clone of the laser whenever the space bar is pressed. The clone will start at the rocket's position and move up the screen.</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-fire-laser-beam.png" alt="Laser firing code" class="scratch-image">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s6_title">Step 6: Adding a Score</h3>
+            <p data-i18n-key="scratch.s6_desc">Create a new <strong>variable</strong> called <strong>score</strong>. Add a block to reset the score to 0 when the game starts. Finally, add the code to your <em>Invader</em> sprite to check if it's touching the laser, increase the score, and hide.</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/scratch-laser-collide-invader.png" alt="Code for collision and scoring" class="scratch-image" style="max-width: 236px;">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s7_title">Step 7: Adding More Invaders</h3>
+            <p data-i18n-key="scratch.s7_desc">Right-click on your invader sprite and "duplicate" it to create about 10 copies. For each new invader, change its starting X and Y coordinates in the <code>go to x: y:</code> block to create a fleet. Now your game is ready to play!</p>
+            <img src="https://www.101computing.net/wp/wp-content/uploads/space-invader-scratch.png" alt="Completed Space Invaders game in Scratch" class="scratch-image">
+        </div>
+
+        <div class="tutorial-step">
+            <h3 data-i18n-key="scratch.s8_title">Extension Task</h3>
+            <p data-i18n-key="scratch.s8_desc">Can you add a "Level Complete!" screen? It should appear when the score reaches 10. Once you're done, you've completed the tutorial! Click the "Finish" button below to unlock the other games.</p>
+        </div>
+    </div>
+    <div class="scratch-nav" style="width: 100%; margin-top: 15px; display: flex; justify-content: space-between;">
+        <button id="scratch-prev-btn" data-i18n-key="scratch.prev">Previous Step</button>
+        <button id="scratch-next-btn" data-i18n-key="scratch.next">Next Step</button>
+    </div>
+</div>
+  
+  <div id="invaders-container" class="game-container" style="display: none;">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+  
+</div>
+
+<audio id="shootSound" src="https://cdn.glitch.global/c389542d-45f8-4029-963a-6cb0de325c38/shoot.wav?v=1661633018865" preload="auto"></audio>
+<audio id="invaderDieSound" src="https://cdn.glitch.global/c389542d-45f8-4029-963a-6cb0de325c38/invaderkilled.wav?v=1661633018865" preload="auto"></audio>
+<audio id="playerDieSound" src="https://cdn.glitch.global/c389542d-45f8-4029-963a-6cb0de325c38/explosion.wav?v=1661633018865" preload="auto"></audio>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+
+<script>
+// ===== MASTER GAME SWITCHER =====
+const gameToggleButtons = document.querySelectorAll('.game-toggle-btn');
+const codeContainer = document.getElementById('code-container');
+const mathContainer = document.getElementById('math-container');
+const rpsContainer = document.getElementById('rps-container');
+const hangmanContainer = document.getElementById('hangman-container');
+const invadersContainer = document.getElementById('invaders-container');
+const scratchContainer = document.getElementById('scratch-container');
+
+let gamesUnlocked = false; // Flag to prevent multiple unlock alerts
+
+function unlockAllGames() {
+    gameToggleButtons.forEach(btn => {
+        btn.disabled = false;
+    });
+    if (!gamesUnlocked) {
+        alert(getTranslation("ui.allGamesUnlocked"));
+        gamesUnlocked = true;
+    }
+}
+
+const allGameContainers = {
+    code: codeContainer,
+    math: mathContainer,
+    rps: rpsContainer,
+    hangman: hangmanContainer,
+    invaders: invadersContainer,
+    scratch: scratchContainer
+};
+const gameScores = {
+    code: 0,
+    math: 0
+};
+
+gameToggleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const currentActiveBtn = document.querySelector('.game-toggle-btn.active');
+        if (currentActiveBtn) {
+            const currentGame = currentActiveBtn.dataset.game;
+            if (currentGame === 'code') {
+                gameScores.code = score;
+            } else if (currentGame === 'math') {
+                gameScores.math = math_score;
+            }
+        }
+
+        const targetGame = btn.dataset.game;
+        gameToggleButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Object.values(allGameContainers).forEach(container => container.style.display = 'none');
+        
+        if (targetGame === 'code') {
+            allGameContainers[targetGame].style.display = 'block';
+        } else {
+            allGameContainers[targetGame].style.display = 'flex';
+        }
+        
+        if (targetGame === 'scratch') {
+            allGameContainers[targetGame].style.flexWrap = 'wrap';
+        }
+
+        if (targetGame === 'code') {
+            score = gameScores.code;
+            updateUI();
+        } else if (targetGame === 'math') {
+            math_score = gameScores.math;
+            math_updateScoreDisplay();
+        } else if (targetGame === 'invaders') {
+            // Special handling for canvas game might be needed here
+        }
+    });
+});
+
+
+// ===== I18N and TRANSLATIONS =====
+const i18nData = {
+    languages: {
+        "en": "English", 
+        "es": "Español", 
+        "de": "Deutsch",
+        "fr": "Français",
+        "it": "Italiano",
+        "zh": "中文",
+        "hi": "हिन्दी",
+        "ar": "العربية",
+        "bn": "বাংলা",
+        "ru": "Русский",
+        "pt": "Português",
+        "ja": "日本語"
+    },
+    translations: {
+        en: {
+            ui: { mainTitle: "Fun & Learn Zone", gameScratchTutorial: "🛠️ Scratch Tutorial", gameScratchBlocks: "🧩 Scratch Blocks", gameMath: "🧮 Math", gameRPS: "💎 RPS", gameHangman: "💀 Hangman", gameInvaders: "👾 Invaders", score: "Score", lives: "Lives", time: "Time", yourName: "Your name", startPrompt: "Enter your name to start", leaderboardTitle: "Leaderboard", gameOverTitle: "GAME OVER", tryAgain: "Try Again", quit: "Quit", thanksForPlaying: "Thanks for playing!", creditsCoder: "Coder: Marcus Kidd", creditsDesigner: "Designer and Game Director: Adam Ashraf", creditsTester: "Beta Tester: Aiden Reid", creditsSpecialThanks: "Thank you Primary Coding League for giving us this opportunity to develop this.", backToMenu: "Back to Main Menu", congrats: "Congratulations! You've completed all puzzles!", checkButton: "Check", showAnswerButton: "Show Answer", nextButton: "Next Question", allGamesUnlocked: "Congratulations! 🥳 You've unlocked all other games!", },
+            math: { title: "Math Challenge", add: "Addition", sub: "Subtraction", mul: "Multiplication", easy: "Easy", medium: "Medium", hard: "Hard", yourAnswer: "Your answer...", submit: "Submit", reset: "Reset", correct: "Correct! 🎉", tryAgain: "Try again!" },
+            rps: { title: "Rock Paper Scissors", player: "Player", computer: "Computer", chooseMove: "Choose your move!", tie: "It's a tie!", win: "You win! 🎉", lose: "You lose! 😢" },
+            hangman: { title: "Hangman", mode: "Mode:", regular: "Regular", mathsTerms: "Maths Terms", newWord: "New Word", win: "Congratulations, you win! 🎉", lose: "Game Over! The word was", },
+            scratch: { title: "How to Make Space Invaders in Scratch", s1_title: "Step 1: Setting up the Stage", s1_desc: `Start a new project in <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> and change the stage backdrop to the one called "Stars".`, s2_title: "Step 2: The Spaceship/Rocket Sprite", s2_desc: "Delete the default <em>Cat</em> sprite, add the <em>Rocketship</em> sprite, and resize it to <strong>35%</strong>. Remove its 5th costume. Then add the necessary code blocks to set the backdrop, animate the rocket, and control its movement with the arrow keys.", s3_title: "Step 3: The Invader Sprite", s3_desc: "Add the <em>Gobo</em> sprite and resize it to <strong>40%</strong>. Then, add the code to position the invader at the top, animate it, and make it move across the screen, dropping down and reversing direction when it hits an edge.", s4_title: "Step 4: Adding a Game Over Screen", s4_desc: `Create a new "Game Over" backdrop using the paint tool. Then, add code to the <em>Invader</em> sprite to detect when it touches the rocket. When it does, the game will switch to the "Game Over" backdrop and stop all scripts.`, s5_title: "Step 5: Firing a Laser Beam", s5_desc: "Paint a new sprite for the laser beam. Then, add the code to make the rocket fire a clone of the laser whenever the space bar is pressed. The clone will start at the rocket's position and move up the screen.", s6_title: "Step 6: Adding a Score", s6_desc: `Create a new <strong>variable</strong> called <strong>score</strong>. Add a block to reset the score to 0 when the game starts. Finally, add the code to your <em>Invader</em> sprite to check if it's touching the laser, increase the score, and hide.`, s7_title: "Step 7: Adding More Invaders", s7_desc: `Right-click on your invader sprite and "duplicate" it to create about 10 copies. For each new invader, change its starting X and Y coordinates in the <code>go to x: y:</code> block to create a fleet. Now your game is ready to play!`, s8_title: "Extension Task", s8_desc: `Can you add a "Level Complete!" screen? It should appear when the score reaches 10. Once you're done, you've completed the tutorial! Click the "Finish" button below to unlock the other games.`, prev: "Previous Step", next: "Next Step", finish: "Finish Tutorial" },
+            puzzles: { 1: { prompt: "1) How do you start a script when the game begins?" }, 2: { prompt: "2) Which block moves a sprite forward by a set amount?" }, 3: { prompt: "3) How do you make a set of blocks run continuously?" }, 4: { prompt: "4) Make a sprite show a speech bubble for a short time." }, 5: { prompt: "5) How do you create a new variable to store data like a score?" }, 6: { prompt: "6) Which block can check if a sprite is touching the edge of the screen?" }, 7: { prompt: "7) Play a sound and make the script wait until it's finished." }, 8: { prompt: "8) Get input from the user by showing a question on the screen." }, 9: { prompt: "9) What block generates a random number within a range?" }, 10: { prompt: "10) How do you create a temporary copy of a sprite?" } },
+            explanations: { 1: "The 'When green flag clicked' block is an Event block. It's the most common way to start scripts when your project runs.", 2: "The 'move 10 steps' block is a fundamental Motion block. It moves the sprite in the direction it's currently facing.", 3: "The 'forever' block is a Control block that creates an infinite loop. Any blocks placed inside it will run over and over again.", 4: "The 'say Hello! for 2 seconds' block is a Looks block. It makes your sprite 'talk' by showing a speech bubble for a set amount of time.", 5: "Variables are used to store information. You create them in the 'Variables' palette by clicking the 'Make a Variable' button.", 6: "The '<touching edge?>' block is a Sensing block. It's a hexagonal block that returns true or false, perfect for use in 'if' statements.", 7: "The 'play sound Meow until done' block is a Sound block. Unlike 'start sound', this block will pause the script until the sound has completely finished playing.", 8: "The 'ask What's your name? and wait' block is a Sensing block. It prompts the user for input, and their answer is stored in the special 'answer' variable.", 9: "The 'pick random 1 to 10' block is an Operators block. It's very useful for adding unpredictability to games and animations.", 10: "The 'create clone of myself' block is a Control block. Cloning is a powerful feature for creating multiple copies of a sprite, like bullets or enemies in a game." },
+            feedback: { p1_ok: "Correct! That's the main event block.", p1_err: "Not quite. Think of the green symbol you click to start.", p2_ok: "You got it! A classic motion block.", p2_err: "Incorrect. Which block is for movement?", p3_ok: "Exactly! That creates an infinite loop.", p3_err: "Wrong block. How do you make something repeat without stopping?", p4_ok: "Perfect! The sprite is talking.", p4_err: "That's not the right way to make a speech bubble.", p5_ok: "Yes! That's how you create a new variable.", p5_err: "Look in the 'Variables' block category.", p6_ok: "Correct! That's a key sensing block.", p6_err: "That's not the right sensing block for collisions.", p7_ok: "Great! The script will wait for the sound.", p7_err: "Check the sound blocks for one that waits.", p8_ok: "You got it! The user's input will be in 'answer'.", p8_err: "Incorrect. Which block is for user input?", p9_ok: "Yes! That's how you get a random number.", p9_err: "Look in the green Operators category.", p10_ok: "Exactly! That's the start of cloning.", p10_err: "Incorrect. This is a special control block for making copies.", generic_error: "Hmm, that doesn't seem right. Check your spelling.", timeUp: "Time's up! ⌛", firstTry: "First Try Bonus! ✅", speedster: "Speedster Bonus!", streak: "Streak" }
+        },
+        es: {
+            ui: { mainTitle: "Zona de Diversión y Aprendizaje", gameScratchTutorial: "🛠️ Tutorial de Scratch", gameScratchBlocks: "🧩 Bloques de Scratch", gameMath: "🧮 Mates", gameRPS: "💎 RPS", gameHangman: "💀 Ahorcado", gameInvaders: "👾 Invasores", score: "Puntuación", lives: "Vidas", time: "Tiempo", yourName: "Tu nombre", startPrompt: "Introduce tu nombre para empezar", gameOverTitle: "FIN DEL JUEGO", tryAgain: "Intentar de nuevo", quit: "Salir", thanksForPlaying: "¡Gracias por jugar!", creditsCoder: "Programador: Marcus Kidd", creditsDesigner: "Diseñador y Director del Juego: Adam Ashraf", creditsTester: "Beta Tester: Aiden Reid", creditsSpecialThanks: "Gracias a la Primary Coding League por darnos esta oportunidad de desarrollar esto.", backToMenu: "Volver al Menú Principal", congrats: "¡Felicidades! ¡Has completado todos los puzzles!", checkButton: "Comprobar", showAnswerButton: "Mostrar respuesta", nextButton: "Siguiente pregunta", allGamesUnlocked: "¡Felicidades! 🥳 ¡Has desbloqueado todos los demás juegos!", },
+            math: { title: "Reto Matemático", add: "Suma", sub: "Resta", mul: "Multiplicación", easy: "Fácil", medium: "Medio", hard: "Difícil", yourAnswer: "Tu respuesta...", submit: "Enviar", reset: "Reiniciar", correct: "¡Correcto! 🎉", tryAgain: "¡Inténtalo de nuevo!", },
+            rps: { title: "Piedra, Papel, Tijera", player: "Jugador", computer: "Ordenador", chooseMove: "¡Elige tu jugada!", tie: "¡Es un empate!", win: "¡Ganas! 🎉", lose: "¡Pierdes! 😢", },
+            hangman: { title: "Ahorcado", mode: "Modo:", regular: "Normal", mathsTerms: "Términos matemáticos", newWord: "Nueva palabra", win: "¡Felicidades, ganas! 🎉", lose: "¡Fin del juego! La palabra era", },
+            scratch: { title: "Cómo Hacer Space Invaders en Scratch", s1_title: "Paso 1: Configurar el escenario", s1_desc: `Inicia un nuevo proyecto en <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> y cambia el fondo del escenario al que se llama "Stars".`, s2_title: "Paso 2: El sprite de la nave/cohete", s2_desc: "Elimina el sprite del <em>Gato</em> por defecto, añade el sprite <em>Rocketship</em> y redimensiónalo al <strong>35%</strong>. Elimina su 5º disfraz. Luego añade los bloques de código necesarios para establecer el fondo, animar el cohete y controlar su movimiento con las teclas de flecha.", s3_title: "Paso 3: El sprite del invasor", s3_desc: "Añade el sprite <em>Gobo</em> y redimensiónalo al <strong>40%</strong>. Luego, añade el código para posicionar al invasor en la parte superior, animarlo y hacerlo mover por la pantalla, bajando y cambiando de dirección cuando toca un borde.", s4_title: "Paso 4: Añadir una pantalla de Game Over", s4_desc: `Crea un nuevo fondo de "Game Over" usando la herramienta de pintar. Luego, añade código al sprite del <em>Invasor</em> para detectar cuándo toca el cohete. Cuando lo haga, el juego cambiará al fondo de "Game Over" y detendrá todos los scripts.`, s5_title: "Paso 5: Disparar un rayo láser", s5_desc: "Pinta un nuevo sprite para el rayo láser. Luego, añade el código para que el cohete dispare un clon del láser cada vez que se presione la barra espaciadora. El clon comenzará en la posición del cohete y se moverá hacia arriba por la pantalla.", s6_title: "Paso 6: Añadir una puntuación", s6_desc: `Crea una nueva <strong>variable</strong> llamada <strong>score</strong>. Añade un bloque para reiniciar la puntuación a 0 cuando comience el juego. Finalmente, añade el código a tu sprite de <em>Invasor</em> para comprobar si está tocando el láser, aumentar la puntuación y esconderse.`, s7_title: "Paso 7: Añadir más invasores", s7_desc: `Haz clic derecho en tu sprite de invasor y "duplícalo" para crear unas 10 copias. Para cada nuevo invasor, cambia sus coordenadas X e Y de inicio en el bloque <code>ir a x: y:</code> para crear una flota. ¡Ahora tu juego está listo para jugar!`, s8_title: "Tarea de ampliación", s8_desc: `¿Puedes añadir una pantalla de "¡Nivel completado!"? Debería aparecer cuando la puntuación llegue a 10. Una vez que hayas terminado, ¡has completado el tutorial! Haz clic en el botón "Finalizar" de abajo para desbloquear los otros juegos.`, prev: "Paso anterior", next: "Siguiente paso", finish: "Finalizar Tutorial", },
+            puzzles: { 1: { prompt: "1) ¿Cómo inicias un script cuando comienza el juego?" }, 2: { prompt: "2) ¿Qué bloque mueve un sprite hacia adelante una cantidad determinada?" }, 3: { prompt: "3) ¿Cómo haces que un conjunto de bloques se ejecute continuamente?" }, 4: { prompt: "4) Haz que un sprite muestre una burbuja de diálogo por un corto tiempo." }, 5: { prompt: "5) ¿Cómo creas una nueva variable para almacenar datos como una puntuación?" }, 6: { prompt: "6) ¿Qué bloque puede comprobar si un sprite está tocando el borde de la pantalla?" }, 7: { prompt: "7) Reproduce un sonido y haz que el script espere hasta que termine." }, 8: { prompt: "8) Obtén información del usuario mostrando una pregunta en la pantalla." }, 9: { prompt: "9) ¿Qué bloque genera un número aleatorio dentro de un rango?" }, 10: { prompt: "10) ¿Cómo creas una copia temporal de un sprite?" } },
+            explanations: { 1: "El bloque 'Al hacer clic en bandera verde' es un bloque de Evento. Es la forma más común de iniciar scripts cuando se ejecuta tu proyecto.", 2: "El bloque 'mover 10 pasos' es un bloque de Movimiento fundamental. Mueve el sprite en la dirección en la que está mirando actualmente.", 3: "El bloque 'por siempre' es un bloque de Control que crea un bucle infinito. Cualquier bloque colocado dentro se ejecutará una y otra vez.", 4: "El bloque 'decir ¡Hola! durante 2 segundos' es un bloque de Apariencia. Hace que tu sprite 'hable' mostrando una burbuja de diálogo durante un tiempo determinado.", 5: "Las variables se utilizan para almacenar información. Las creas en la paleta de 'Variables' haciendo clic en el botón 'Crear una variable'.", 6: "El bloque '¿tocando el borde?' es un bloque de Sensores. Es un bloque hexagonal que devuelve verdadero o falso, perfecto para usar en sentencias 'si'.", 7: "El bloque 'tocar sonido Miau hasta que termine' es un bloque de Sonido. A diferencia de 'iniciar sonido', este bloque pausará el script hasta que el sonido haya terminado de reproducirse por completo.", 8: "El bloque 'preguntar ¿Cómo te llamas? y esperar' es un bloque de Sensores. Pide al usuario que introduzca datos, y su respuesta se almacena en la variable especial 'respuesta'.", 9: "El bloque 'número aleatorio entre 1 y 10' es un bloque de Operadores. Es muy útil para añadir imprevisibilidad a los juegos y animaciones.", 10: "El bloque 'crear clon de mí mismo' es un bloque de Control. La clonación es una característica poderosa para crear múltiples copias de un sprite, como balas o enemigos en un juego." },
+            feedback: { p1_ok: "¡Correcto! Ese es el bloque de evento principal.", p1_err: "No exactamente. Piensa en el símbolo verde en el que haces clic para empezar.", p2_ok: "¡Lo tienes! Un bloque de movimiento clásico.", p2_err: "Incorrecto. ¿Qué bloque es para el movimiento?", p3_ok: "¡Exacto! Eso crea un bucle infinito.", p3_err: "Bloque equivocado. ¿Cómo haces que algo se repita sin parar?", p4_ok: "¡Perfecto! El sprite está hablando.", p4_err: "Esa no es la forma correcta de hacer una burbuja de diálogo.", p5_ok: "¡Sí! Así es como se crea una nueva variable.", p5_err: "Busca en la categoría de bloques 'Variables'.", p6_ok: "¡Correcto! Ese es un bloque de sensores clave.", p6_err: "Ese no es el bloque de sensores correcto para colisiones.", p7_ok: "¡Genial! El script esperará al sonido.", p7_err: "Comprueba los bloques de sonido para encontrar uno que espere.", p8_ok: "¡Lo tienes! La entrada del usuario estará en 'respuesta'.", p8_err: "Incorrecto. ¿Qué bloque es para la entrada del usuario?", p9_ok: "¡Sí! Así es como se obtiene un número aleatorio.", p9_err: "Busca en la categoría verde de Operadores.", p10_ok: "¡Exacto! Ese es el comienzo de la clonación.", p10_err: "Incorrecto. Este es un bloque de control especial para hacer copias.", generic_error: "Hmm, eso no parece correcto. Revisa tu ortografía.", timeUp: "¡Se acabó el tiempo! ⌛", }
+        },
+        de: {
+            ui: { mainTitle: "Spaß & Lernzone", gameScratchTutorial: "🛠️ Scratch-Tutorial", gameScratchBlocks: "🧩 Scratch-Blöcke", gameMath: "🧮 Mathe", gameRPS: "💎 RPS", gameHangman: "💀 Galgenmännchen", gameInvaders: "👾 Invaders", score: "Punktzahl", lives: "Leben", time: "Zeit", yourName: "Dein Name", startPrompt: "Gib deinen Namen ein, um zu starten", gameOverTitle: "SPIEL ENDE", tryAgain: "Erneut versuchen", quit: "Beenden", thanksForPlaying: "Danke fürs Spielen!", creditsCoder: "Programmierer: Marcus Kidd", creditsDesigner: "Designer und Spielleiter: Adam Ashraf", creditsTester: "Beta-Tester: Aiden Reid", creditsSpecialThanks: "Vielen Dank an die Primary Coding League, die uns die Möglichkeit gegeben hat, dies zu entwickeln.", backToMenu: "Zurück zum Hauptmenü", congrats: "Herzlichen Glückwunsch! Du hast alle Rätsel gelöst!", checkButton: "Prüfen", showAnswerButton: "Antwort zeigen", nextButton: "Nächste Frage", allGamesUnlocked: "Herzlichen Glückwunsch! 🥳 Du hast alle anderen Spiele freigeschaltet!", },
+            math: { title: "Mathe-Herausforderung", add: "Addition", sub: "Subtraktion", mul: "Multiplikation", easy: "Leicht", medium: "Mittel", hard: "Schwer", yourAnswer: "Deine Antwort...", submit: "Senden", reset: "Zurücksetzen", correct: "Richtig! 🎉", tryAgain: "Versuch es noch einmal!", },
+            rps: { title: "Schere, Stein, Papier", player: "Spieler", computer: "Computer", chooseMove: "Wähle deinen Zug!", tie: "Unentschieden!", win: "Du gewinnst! 🎉", lose: "Du verlierst! 😢", },
+            hangman: { title: "Galgenmännchen", mode: "Modus:", regular: "Standard", mathsTerms: "Mathe-Begriffe", newWord: "Neues Wort", win: "Herzlichen Glückwunsch, du gewinnst! 🎉", lose: "Spiel vorbei! Das Wort war", },
+            scratch: { title: "Wie man Space Invaders in Scratch erstellt", s1_title: "Schritt 1: Die Bühne einrichten", s1_desc: `Starte ein neues Projekt in <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> und ändere das Bühnenbild zu dem mit dem Namen "Stars".`, s2_title: "Schritt 2: Die Raumschiff/Raketen-Figur", s2_desc: "Lösche die Standard-<em>Katzen</em>-Figur, füge die <em>Raketenschiff</em>-Figur hinzu und ändere ihre Größe auf <strong>35%</strong>. Entferne ihr 5. Kostüm. Füge dann die notwendigen Codeblöcke hinzu, um das Bühnenbild zu setzen, die Rakete zu animieren und ihre Bewegung mit den Pfeiltasten zu steuern.", s3_title: "Schritt 3: Die Invasoren-Figur", s3_desc: "Füge die <em>Gobo</em>-Figur hinzu und ändere ihre Größe auf <strong>40%</strong>. Füge dann den Code hinzu, um den Invasor oben zu positionieren, ihn zu animieren und ihn über den Bildschirm bewegen zu lassen, wobei er nach unten fällt und die Richtung umkehrt, wenn er einen Rand berührt.", s4_title: "Schritt 4: Einen Game-Over-Bildschirm hinzufügen", s4_desc: `Erstelle ein neues "Game Over"-Bühnenbild mit dem Malwerkzeug. Füge dann Code zur <em>Invasoren</em>-Figur hinzu, um zu erkennen, wenn sie die Rakete berührt. In diesem Fall wechselt das Spiel zum "Game Over"-Bühnenbild und stoppt alle Skripte.`, s5_title: "Schritt 5: Einen Laserstrahl abfeuern", s5_desc: "Male eine neue Figur für den Laserstrahl. Füge dann den Code hinzu, damit die Rakete einen Klon des Lasers abfeuert, wann immer die Leertaste gedrückt wird. Der Klon startet an der Position der Rakete und bewegt sich den Bildschirm hinauf.", s6_title: "Schritt 6: Eine Punktzahl hinzufügen", s6_desc: `Erstelle eine neue <strong>Variable</strong> namens <strong>score</strong>. Füge einen Block hinzu, um die Punktzahl bei Spielbeginn auf 0 zurückzusetzen. Füge schließlich den Code zu deiner <em>Invasoren</em>-Figur hinzu, um zu prüfen, ob sie den Laser berührt, die Punktzahl zu erhöhen und sich zu verstecken.`, s7_title: "Schritt 7: Weitere Invasoren hinzufügen", s7_desc: `Klicke mit der rechten Maustaste auf deine Invasoren-Figur und "dupliziere" sie, um etwa 10 Kopien zu erstellen. Ändere für jeden neuen Invasor seine Start-X- und Y-Koordinaten im <code>gehe zu x: y:</code> Block, um eine Flotte zu erstellen. Jetzt ist dein Spiel spielbereit!`, s8_title: "Erweiterungsaufgabe", s8_desc: `Kannst du einen "Level abgeschlossen!"-Bildschirm hinzufügen? Er sollte erscheinen, wenn die Punktzahl 10 erreicht. Sobald du fertig bist, hast du das Tutorial abgeschlossen! Klicke unten auf den "Fertigstellen"-Button, um die anderen Spiele freizuschalten.`, prev: "Vorheriger Schritt", next: "Nächster Schritt", finish: "Tutorial beenden", },
+            puzzles: { 1: { prompt: "1) Wie startest du ein Skript, wenn das Spiel beginnt?" }, 2: { prompt: "2) Welcher Block bewegt eine Figur um einen bestimmten Betrag vorwärts?" }, 3: { prompt: "3) Wie lässt du eine Reihe von Blöcken kontinuierlich laufen?" }, 4: { prompt: "4) Lasse eine Figur für kurze Zeit eine Sprechblase anzeigen." }, 5: { prompt: "5) Wie erstellst du eine neue Variable, um Daten wie eine Punktzahl zu speichern?" }, 6: { prompt: "6) Welcher Block kann prüfen, ob eine Figur den Bildschirmrand berührt?" }, 7: { prompt: "7) Spiele einen Sound ab und lasse das Skript warten, bis er fertig ist." }, 8: { prompt: "8) Hole eine Eingabe vom Benutzer ein, indem du eine Frage auf dem Bildschirm anzeigst." }, 9: { prompt: "9) Welcher Block erzeugt eine Zufallszahl innerhalb eines Bereichs?" }, 10: { prompt: "10) Wie erstellst du eine temporäre Kopie einer Figur?" } },
+            explanations: { 1: "Der Block 'Wenn grüne Flagge angeklickt' ist ein Ereignisblock. Es ist die häufigste Art, Skripte zu starten, wenn dein Projekt läuft.", 2: "Der Block 'gehe 10er-Schritt' ist ein grundlegender Bewegungsblock. Er bewegt die Figur in die Richtung, in die sie gerade blickt.", 3: "Der Block 'wiederhole fortlaufend' ist ein Steuerungsblock, der eine Endlosschleife erzeugt. Alle darin platzierten Blöcke werden immer wieder ausgeführt.", 4: "Der Block 'sage Hallo! für 2 Sekunden' ist ein Aussehensblock. Er lässt deine Figur 'sprechen', indem er für eine bestimmte Zeit eine Sprechblase anzeigt.", 5: "Variablen werden verwendet, um Informationen zu speichern. Du erstellst sie in der 'Variablen'-Palette, indem du auf die Schaltfläche 'Variable erstellen' klickst.", 6: "Der Block '<wird Rand berührt?>' ist ein Fühlen-Block. Es ist ein sechseckiger Block, der wahr oder falsch zurückgibt, perfekt für die Verwendung in 'falls'-Anweisungen.", 7: "Der Block 'spiele Klang Miau ganz' ist ein Klang-Block. Im Gegensatz zu 'starte Klang' pausiert dieser Block das Skript, bis der Klang vollständig abgespielt wurde.", 8: "Der Block 'frage Wie heißt du? und warte' ist ein Fühlen-Block. Er fordert den Benutzer zur Eingabe auf, und seine Antwort wird in der speziellen 'Antwort'-Variable gespeichert.", 9: "Der Block 'Zufallszahl von 1 bis 10' ist ein Operatoren-Block. Er ist sehr nützlich, um Spielen und Animationen Unvorhersehbarkeit zu verleihen.", 10: "Der Block 'erzeuge Klon von mir selbst' ist ein Steuerungsblock. Das Klonen ist eine leistungsstarke Funktion zum Erstellen mehrerer Kopien einer Figur, wie z.B. Kugeln oder Gegner in einem Spiel." },
+            feedback: { p1_ok: "Richtig! Das ist der Hauptereignisblock.", p1_err: "Nicht ganz. Denk an das grüne Symbol, das du zum Starten anklickst.", p2_ok: "Genau! Ein klassischer Bewegungsblock.", p2_err: "Falsch. Welcher Block ist für die Bewegung?", p3_ok: "Exakt! Das erzeugt eine Endlosschleife.", p3_err: "Falscher Block. Wie lässt du etwas ohne Unterbrechung wiederholen?", p4_ok: "Perfekt! Die Figur spricht.", p4_err: "Das ist nicht der richtige Weg, um eine Sprechblase zu erstellen.", p5_ok: "Ja! So erstellt man eine neue Variable.", p5_err: "Schau in die Blockkategorie 'Variablen'.", p6_ok: "Richtig! Das ist ein wichtiger Fühlen-Block.", p6_err: "Das ist nicht der richtige Fühlen-Block für Kollisionen.", p7_ok: "Großartig! Das Skript wird auf den Klang warten.", p7_err: "Überprüfe die Klangblöcke auf einen, der wartet.", p8_ok: "Genau! Die Eingabe des Benutzers wird in 'Antwort' sein.", p8_err: "Falsch. Welcher Block ist für die Benutzereingabe?", p9_ok: "Ja! So erhält man eine Zufallszahl.", p9_err: "Schau in die grüne Kategorie Operatoren.", p10_ok: "Exakt! Das ist der Anfang des Klonens.", p10_err: "Falsch. Dies ist ein spezieller Steuerungsblock zum Erstellen von Kopien.", generic_error: "Hmm, das scheint nicht richtig zu sein. Überprüfe deine Rechtschreibung.", timeUp: "Die Zeit ist um! ⌛", }
+        },
+        fr: {
+            ui: { mainTitle: "Zone d'Apprentissage et d'Amusement", gameScratchTutorial: "🛠️ Tutoriel Scratch", gameScratchBlocks: "🧩 Blocs Scratch", gameMath: "🧮 Maths", gameRPS: "💎 RPS", gameHangman: "💀 Pendu", gameInvaders: "👾 Envahisseurs", score: "Score", lives: "Vies", time: "Temps", yourName: "Votre nom", startPrompt: "Entrez votre nom pour commencer", gameOverTitle: "FIN DE PARTIE", tryAgain: "Réessayer", quit: "Quitter", thanksForPlaying: "Merci d'avoir joué !", creditsCoder: "Codeur : Marcus Kidd", creditsDesigner: "Concepteur et Directeur du jeu : Adam Ashraf", creditsTester: "Bêta-testeur : Aiden Reid", creditsSpecialThanks: "Merci à la Primary Coding League de nous avoir donné l'opportunité de développer ce projet.", backToMenu: "Retour au menu principal", congrats: "Félicitations ! Vous avez terminé tous les puzzles !", checkButton: "Vérifier", showAnswerButton: "Montrer la réponse", nextButton: "Question suivante", allGamesUnlocked: "Félicitations ! 🥳 Vous avez débloqué tous les autres jeux !", },
+            math: { title: "Défi Mathématique", add: "Addition", sub: "Soustraction", mul: "Multiplication", easy: "Facile", medium: "Moyen", hard: "Difficile", yourAnswer: "Votre réponse...", submit: "Soumettre", reset: "Réinitialiser", correct: "Correct ! 🎉", tryAgain: "Réessayez !", },
+            rps: { title: "Pierre Feuille Ciseaux", player: "Joueur", computer: "Ordinateur", chooseMove: "Choisissez votre coup !", tie: "Égalité !", win: "Vous gagnez ! 🎉", lose: "Vous perdez ! 😢", },
+            hangman: { title: "Pendu", mode: "Mode :", regular: "Normal", mathsTerms: "Termes mathématiques", newWord: "Nouveau mot", win: "Félicitations, vous avez gagné ! 🎉", lose: "Partie terminée ! Le mot était", },
+            scratch: { title: "Comment créer Space Invaders avec Scratch", s1_title: "Étape 1 : Configuration de la scène", s1_desc: `Commencez un nouveau projet dans <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> et changez l'arrière-plan de la scène pour celui appelé "Stars".`, s2_title: "Étape 2 : Le sprite du vaisseau/fusée", s2_desc: "Supprimez le sprite <em>Chat</em> par défaut, ajoutez le sprite <em>Rocketship</em> et redimensionnez-le à <strong>35%</strong>. Supprimez son 5ème costume. Ajoutez ensuite les blocs de code nécessaires pour définir l'arrière-plan, animer la fusée et contrôler son mouvement avec les touches fléchées.", s3_title: "Étape 3 : Le sprite de l'envahisseur", s3_desc: "Ajoutez le sprite <em>Gobo</em> et redimensionnez-le à <strong>40%</strong>. Ensuite, ajoutez le code pour positionner l'envahisseur en haut, l'animer et le faire se déplacer sur l'écran, en descendant et en inversant sa direction lorsqu'il touche un bord.", s4_title: "Étape 4 : Ajout d'un écran de fin de partie", s4_desc: `Créez un nouvel arrière-plan "Game Over" avec l'outil de peinture. Ajoutez ensuite du code au sprite <em>Invader</em> pour détecter quand il touche la fusée. Lorsque cela se produit, le jeu passera à l'arrière-plan "Game Over" et arrêtera tous les scripts.`, s5_title: "Étape 5 : Tirer un rayon laser", s5_desc: "Dessinez un nouveau sprite pour le rayon laser. Ensuite, ajoutez le code pour que la fusée tire un clone du laser chaque fois que la barre d'espace est enfoncée. Le clone commencera à la position de la fusée et montera sur l'écran.", s6_title: "Étape 6 : Ajout d'un score", s6_desc: `Créez une nouvelle <strong>variable</strong> appelée <strong>score</strong>. Ajoutez un bloc pour réinitialiser le score à 0 au début du jeu. Enfin, ajoutez le code à votre sprite <em>Invader</em> pour vérifier s'il touche le laser, augmenter le score et se cacher.`, s7_title: "Étape 7 : Ajout de plus d'envahisseurs", s7_desc: `Faites un clic droit sur votre sprite d'envahisseur et "dupliquez-le" pour créer environ 10 copies. Pour chaque nouvel envahisseur, modifiez ses coordonnées de départ X et Y dans le bloc <code>aller à x: y:</code> pour créer une flotte. Votre jeu est maintenant prêt à jouer !`, s8_title: "Tâche d'extension", s8_desc: `Pouvez-vous ajouter un écran "Niveau terminé !" ? Il devrait apparaître lorsque le score atteint 10. Une fois terminé, vous avez fini le tutoriel ! Cliquez sur le bouton "Terminer" ci-dessous pour débloquer les autres jeux.`, prev: "Étape précédente", next: "Étape suivante", finish: "Terminer le tutoriel", },
+            puzzles: { 1: { prompt: "1) Comment démarrez-vous un script lorsque le jeu commence ?" }, 2: { prompt: "2) Quel bloc déplace un sprite vers l'avant d'une quantité définie ?" }, 3: { prompt: "3) Comment faites-vous pour qu'un ensemble de blocs s'exécute en continu ?" }, 4: { prompt: "4) Faites en sorte qu'un sprite affiche une bulle de dialogue pendant un court instant." }, 5: { prompt: "5) Comment créez-vous une nouvelle variable pour stocker des données comme un score ?" }, 6: { prompt: "6) Quel bloc peut vérifier si un sprite touche le bord de l'écran ?" }, 7: { prompt: "7) Jouez un son et faites attendre le script jusqu'à ce qu'il soit terminé." }, 8: { prompt: "8) Obtenez une entrée de l'utilisateur en affichant une question à l'écran." }, 9: { prompt: "9) Quel bloc génère un nombre aléatoire dans une plage ?" }, 10: { prompt: "10) Comment créez-vous une copie temporaire d'un sprite ?" } },
+            explanations: { 1: "Le bloc 'Quand le drapeau vert est cliqué' est un bloc Événement. C'est le moyen le plus courant de démarrer des scripts lorsque votre projet s'exécute.", 2: "Le bloc 'avancer de 10 pas' est un bloc Mouvement fondamental. Il déplace le sprite dans la direction à laquelle il fait face actuellement.", 3: "Le bloc 'répéter indéfiniment' est un bloc Contrôle qui crée une boucle infinie. Tous les blocs placés à l'intérieur s'exécuteront encore et encore.", 4: "Le bloc 'dire Hello! pendant 2 secondes' est un bloc Apparence. Il fait 'parler' votre sprite en affichant une bulle de dialogue pendant une durée déterminée.", 5: "Les variables sont utilisées pour stocker des informations. Vous les créez dans la palette 'Variables' en cliquant sur le bouton 'Créer une variable'.", 6: "Le bloc '<touche le bord ?>' est un bloc Capteurs. C'est un bloc hexagonal qui renvoie vrai ou faux, parfait pour une utilisation dans les instructions 'si'.", 7: "Le bloc 'jouer le son Miau jusqu'au bout' est un bloc Son. Contrairement à 'jouer le son', ce bloc mettra le script en pause jusqu'à ce que le son soit complètement terminé.", 8: "Le bloc 'demander Quel est votre nom ? et attendre' est un bloc Capteurs. Il demande une entrée à l'utilisateur, et sa réponse est stockée dans la variable spéciale 'réponse'.", 9: "Le bloc 'nombre aléatoire entre 1 et 10' est un bloc Opérateurs. Il est très utile pour ajouter de l'imprévisibilité aux jeux et animations.", 10: "Le bloc 'créer un clone de moi-même' est un bloc Contrôle. Le clonage est une fonctionnalité puissante pour créer plusieurs copies d'un sprite, comme des balles ou des ennemis dans un jeu." },
+            feedback: { p1_ok: "Correct ! C'est le bloc d'événement principal.", p1_err: "Pas tout à fait. Pensez au symbole vert sur lequel vous cliquez pour commencer.", p2_ok: "C'est ça ! Un bloc de mouvement classique.", p2_err: "Incorrect. Quel bloc sert au mouvement ?", p3_ok: "Exactement ! Cela crée une boucle infinie.", p3_err: "Mauvais bloc. Comment faire pour que quelque chose se répète sans s'arrêter ?", p4_ok: "Parfait ! Le sprite parle.", p4_err: "Ce n'est pas la bonne façon de faire une bulle de dialogue.", p5_ok: "Oui ! C'est comme ça qu'on crée une nouvelle variable.", p5_err: "Regardez dans la catégorie de blocs 'Variables'.", p6_ok: "Correct ! C'est un bloc de capteurs clé.", p6_err: "Ce n'est pas le bon bloc de capteurs pour les collisions.", p7_ok: "Génial ! Le script attendra le son.", p7_err: "Vérifiez les blocs de son pour en trouver un qui attend.", p8_ok: "C'est ça ! L'entrée de l'utilisateur sera dans 'réponse'.", p8_err: "Incorrect. Quel bloc sert à l'entrée de l'utilisateur ?", p9_ok: "Oui ! C'est comme ça qu'on obtient un nombre aléatoire.", p9_err: "Regardez dans la catégorie verte des Opérateurs.", p10_ok: "Exactement ! C'est le début du clonage.", p10_err: "Incorrect. C'est un bloc de contrôle spécial pour faire des copies.", generic_error: "Hmm, ça ne semble pas correct. Vérifiez votre orthographe.", timeUp: "Le temps est écoulé ! ⌛", }
+        },
+        it: {
+            ui: { mainTitle: "Zona Divertimento e Apprendimento", gameScratchTutorial: "🛠️ Tutorial di Scratch", gameScratchBlocks: "🧩 Blocchi di Scratch", gameMath: "🧮 Matematica", gameRPS: "💎 RPS", gameHangman: "💀 Impiccato", gameInvaders: "👾 Invasori", score: "Punteggio", lives: "Vite", time: "Tempo", yourName: "Il tuo nome", startPrompt: "Inserisci il tuo nome per iniziare", gameOverTitle: "FINE PARTITA", tryAgain: "Riprova", quit: "Esci", thanksForPlaying: "Grazie per aver giocato!", creditsCoder: "Programmatore: Marcus Kidd", creditsDesigner: "Designer e Direttore del gioco: Adam Ashraf", creditsTester: "Beta Tester: Aiden Reid", creditsSpecialThanks: "Grazie alla Primary Coding League per averci dato l'opportunità di sviluppare questo progetto.", backToMenu: "Torna al menu principale", congrats: "Congratulazioni! Hai completato tutti i puzzle!", checkButton: "Controlla", showAnswerButton: "Mostra risposta", nextButton: "Prossima domanda", allGamesUnlocked: "Congratulazioni! 🥳 Hai sbloccato tutti gli altri giochi!", },
+            math: { title: "Sfida di Matematica", add: "Addizione", sub: "Sottrazione", mul: "Moltiplicazione", easy: "Facile", medium: "Medio", hard: "Difficile", yourAnswer: "La tua risposta...", submit: "Invia", reset: "Resetta", correct: "Corretto! 🎉", tryAgain: "Riprova!", },
+            rps: { title: "Sasso Carta Forbice", player: "Giocatore", computer: "Computer", chooseMove: "Scegli la tua mossa!", tie: "È un pareggio!", win: "Hai vinto! 🎉", lose: "Hai perso! 😢", },
+            hangman: { title: "Impiccato", mode: "Modalità:", regular: "Normale", mathsTerms: "Termini matematici", newWord: "Nuova parola", win: "Congratulazioni, hai vinto! 🎉", lose: "Fine partita! La parola era", },
+            scratch: { title: "Come creare Space Invaders in Scratch", s1_title: "Passo 1: Impostazione dello stage", s1_desc: `Inizia un nuovo progetto in <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> e cambia lo sfondo dello stage con quello chiamato "Stars".`, s2_title: "Passo 2: Lo sprite dell'astronave/razzo", s2_desc: "Elimina lo sprite predefinito del <em>Gatto</em>, aggiungi lo sprite <em>Rocketship</em> e ridimensionalo al <strong>35%</strong>. Rimuovi il suo 5° costume. Quindi aggiungi i blocchi di codice necessari per impostare lo sfondo, animare il razzo e controllare il suo movimento con i tasti freccia.", s3_title: "Passo 3: Lo sprite dell'invasore", s3_desc: "Aggiungi lo sprite <em>Gobo</em> e ridimensionalo al <strong>40%</strong>. Quindi, aggiungi il codice per posizionare l'invasore in alto, animarlo e farlo muovere sullo schermo, scendendo e invertendo la direzione quando colpisce un bordo.", s4_title: "Passo 4: Aggiungere una schermata di Game Over", s4_desc: `Crea un nuovo sfondo "Game Over" usando lo strumento di disegno. Quindi, aggiungi il codice allo sprite <em>Invader</em> per rilevare quando tocca il razzo. Quando lo fa, il gioco passerà allo sfondo "Game Over" e fermerà tutti gli script.`, s5_title: "Passo 5: Sparare un raggio laser", s5_desc: "Disegna un nuovo sprite per il raggio laser. Quindi, aggiungi il codice per far sì che il razzo spari un clone del laser ogni volta che viene premuta la barra spaziatrice. Il clone inizierà dalla posizione del razzo e si muoverà verso l'alto sullo schermo.", s6_title: "Passo 6: Aggiungere un punteggio", s6_desc: `Crea una nuova <strong>variabile</strong> chiamata <strong>score</strong>. Aggiungi un blocco per azzerare il punteggio all'inizio del gioco. Infine, aggiungi il codice al tuo sprite <em>Invader</em> per controllare se sta toccando il laser, aumentare il punteggio e nascondersi.`, s7_title: "Passo 7: Aggiungere più invasori", s7_desc: `Fai clic con il pulsante destro del mouse sul tuo sprite invasore e "duplicalo" per creare circa 10 copie. Per ogni nuovo invasore, cambia le sue coordinate X e Y di partenza nel blocco <code>vai a x: y:</code> per creare una flotta. Ora il tuo gioco è pronto per essere giocato!`, s8_title: "Compito di estensione", s8_desc: `Puoi aggiungere una schermata "Livello completato!"? Dovrebbe apparire quando il punteggio raggiunge 10. Una volta terminato, hai completato il tutorial! Fai clic sul pulsante "Fine" qui sotto per sbloccare gli altri giochi.`, prev: "Passo precedente", next: "Passo successivo", finish: "Termina tutorial", },
+            puzzles: { 1: { prompt: "1) Come si avvia uno script quando inizia il gioco?" }, 2: { prompt: "2) Quale blocco sposta uno sprite in avanti di una quantità definita?" }, 3: { prompt: "3) Come si fa a far eseguire un insieme di blocchi continuamente?" }, 4: { prompt: "4) Fai in modo che uno sprite mostri un fumetto per un breve periodo." }, 5: { prompt: "5) Come si crea una nuova variabile per memorizzare dati come un punteggio?" }, 6: { prompt: "6) Quale blocco può controllare se uno sprite sta toccando il bordo dello schermo?" }, 7: { prompt: "7) Riproduci un suono e fai attendere lo script finché non è finito." }, 8: { prompt: "8) Ottieni un input dall'utente mostrando una domanda sullo schermo." }, 9: { prompt: "9) Quale blocco genera un numero casuale all'interno di un intervallo?" }, 10: { prompt: "10) Come si crea una copia temporanea di uno sprite?" } },
+            explanations: { 1: "Il blocco 'Quando si clicca sulla bandiera verde' è un blocco Situazioni. È il modo più comune per avviare gli script quando il progetto viene eseguito.", 2: "Il blocco 'fai 10 passi' è un blocco Movimento fondamentale. Muove lo sprite nella direzione in cui è attualmente rivolto.", 3: "Il blocco 'per sempre' è un blocco Controllo che crea un ciclo infinito. Qualsiasi blocco inserito al suo interno verrà eseguito ripetutamente.", 4: "Il blocco 'dire Ciao! per 2 secondi' è un blocco Aspetto. Fa 'parlare' il tuo sprite mostrando un fumetto per un determinato periodo di tempo.", 5: "Le variabili vengono utilizzate per memorizzare informazioni. Le crei nella palette 'Variabili' facendo clic sul pulsante 'Crea una variabile'.", 6: "Il blocco '<sta toccando il bordo?>' è un blocco Sensori. È un blocco esagonale che restituisce vero o falso, perfetto per l'uso nelle istruzioni 'se'.", 7: "Il blocco 'riproduci suono Miau e attendi la fine' è un blocco Suono. A differenza di 'avvia riproduzione suono', questo blocco metterà in pausa lo script fino a quando il suono non sarà completamente terminato.", 8: "Il blocco 'chiedi Come ti chiami? e attendi' è un blocco Sensori. Chiede un input dall'utente e la sua risposta viene memorizzata nella variabile speciale 'risposta'.", 9: "Il blocco 'numero a caso tra 1 e 10' è un blocco Operatori. È molto utile per aggiungere imprevedibilità a giochi e animazioni.", 10: "Il blocco 'crea clone di me stesso' è un blocco Controllo. La clonazione è una potente funzione per creare più copie di uno sprite, come proiettili o nemici in un gioco." },
+            feedback: { p1_ok: "Corretto! Questo è il blocco situazione principale.", p1_err: "Non proprio. Pensa al simbolo verde su cui fai clic per iniziare.", p2_ok: "Esatto! Un classico blocco di movimento.", p2_err: "Errato. Quale blocco serve per il movimento?", p3_ok: "Esattamente! Questo crea un ciclo infinito.", p3_err: "Blocco sbagliato. Come si fa a far ripetere qualcosa senza sosta?", p4_ok: "Perfetto! Lo sprite sta parlando.", p4_err: "Non è il modo giusto per creare un fumetto.", p5_ok: "Sì! È così che si crea una nuova variabile.", p5_err: "Guarda nella categoria dei blocchi 'Variabili'.", p6_ok: "Corretto! Questo è un blocco sensore chiave.", p6_err: "Non è il blocco sensore giusto per le collisioni.", p7_ok: "Ottimo! Lo script attenderà il suono.", p7_err: "Controlla i blocchi audio per trovarne uno che attenda.", p8_ok: "Esatto! L'input dell'utente sarà in 'risposta'.", p8_err: "Errato. Quale blocco serve per l'input dell'utente?", p9_ok: "Sì! È così che si ottiene un numero casuale.", p9_err: "Guarda nella categoria verde degli Operatori.", p10_ok: "Esattamente! Questo è l'inizio della clonazione.", p10_err: "Errato. Questo è un blocco di controllo speciale per creare copie.", generic_error: "Hmm, non sembra corretto. Controlla l'ortografia.", timeUp: "Tempo scaduto! ⌛", }
+        },
+        zh: {
+            ui: { mainTitle: "趣味学习区", gameScratchTutorial: "🛠️ Scratch 教程", gameScratchBlocks: "🧩 Scratch 模块", gameMath: "🧮 数学", gameRPS: "💎 剪刀石头布", gameHangman: "💀 猜单词", gameInvaders: "👾 入侵者", score: "分数", lives: "生命", time: "时间", yourName: "你的名字", startPrompt: "输入你的名字开始", leaderboardTitle: "排行榜", gameOverTitle: "游戏结束", tryAgain: "再试一次", quit: "退出", thanksForPlaying: "感谢游玩！", creditsCoder: "程序员: Marcus Kidd", creditsDesigner: "设计师和游戏总监: Adam Ashraf", creditsTester: "测试员: Aiden Reid", creditsSpecialThanks: "感谢小学编程联盟给我们这次开发的机会。", backToMenu: "返回主菜单", congrats: "恭喜！你已完成所有谜题！", checkButton: "检查", showAnswerButton: "显示答案", nextButton: "下一题", allGamesUnlocked: "恭喜！🥳 你已解锁所有其他游戏！", },
+            math: { title: "数学挑战", add: "加法", sub: "减法", mul: "乘法", easy: "简单", medium: "中等", hard: "困难", yourAnswer: "你的答案...", submit: "提交", reset: "重置", correct: "正确！🎉", tryAgain: "再试一次！" },
+            rps: { title: "剪刀石头布", player: "玩家", computer: "电脑", chooseMove: "请出拳！", tie: "平局！", win: "你赢了！🎉", lose: "你输了！😢" },
+            hangman: { title: "猜单词", mode: "模式:", regular: "常规", mathsTerms: "数学术语", newWord: "新单词", win: "恭喜，你赢了！🎉", lose: "游戏结束！单词是", },
+            scratch: { title: "如何在 Scratch 中制作太空入侵者", s1_title: "第1步：设置舞台", s1_desc: `在 <a href="https://scratch.mit.edu/" rel="noopener" target="_blank">Scratch</a> 中开始一个新项目，并将舞台背景更改为名为“Stars”的背景。`, s2_title: "第2步：飞船/火箭角色", s2_desc: "删除默认的<em>猫</em>角色，添加<em>火箭飞船</em>角色，并将其大小调整为<strong>35%</strong>。移除其第5个造型。然后添加必要的代码块来设置背景、动画化火箭，并用箭头键控制其移动。", s3_title: "第3步：入侵者角色", s3_desc: "添加<em>Gobo</em>角色，并将其大小调整为<strong>40%</strong>。然后，添加代码将入侵者定位在顶部，使其动画化，并使其在屏幕上移动，在碰到边缘时下降并反向。", s4_title: "第4步：添加游戏结束画面", s4_desc: `使用绘画工具创建一个新的“游戏结束”背景。然后，向<em>入侵者</em>角色添加代码以检测其何时接触到火箭。当接触时，游戏将切换到“游戏结束”背景并停止所有脚本。`, s5_title: "第5步：发射激光束", s5_desc: "为激光束绘制一个新角色。然后，添加代码使火箭在按下空格键时发射激光的克隆体。克隆体将从火箭的位置开始并向上移动。", s6_title: "第6步：添加分数", s6_desc: `创建一个名为<strong>分数</strong>的新<strong>变量</strong>。添加一个模块，在游戏开始时将分数重置为0。最后，向你的<em>入侵者</em>角色添加代码，检查它是否接触到激光，增加分数并隐藏。`, s7_title: "第7步：添加更多入侵者", s7_desc: `右键单击你的入侵者角色并“复制”它，以创建约10个副本。对于每个新的入侵者，在<code>移动到 x: y:</code>模块中更改其起始X和Y坐标，以创建一支舰队。现在你的游戏可以玩了！`, s8_title: "扩展任务", s8_desc: `你能添加一个“关卡完成！”的画面吗？它应该在分数达到10时出现。完成后，你就完成了教程！点击下面的“完成”按钮解锁其他游戏。`, prev: "上一步", next: "下一步", finish: "完成教程" },
+            puzzles: { 1: { prompt: "1) 游戏开始时如何启动脚本？" }, 2: { prompt: "2) 哪个模块可以让角色向前移动一定步数？" }, 3: { prompt: "3) 如何让一组模块连续运行？" }, 4: { prompt: "4) 让角色显示一个对话气泡一小段时间。" }, 5: { prompt: "5) 如何创建一个新变量来存储像分数这样的数据？" }, 6: { prompt: "6) 哪个模块可以检查角色是否碰到屏幕边缘？" }, 7: { prompt: "7) 播放一个声音并让脚本等待它播放完毕。" }, 8: { prompt: "8) 通过在屏幕上显示问题来从用户那里获取输入。" }, 9: { prompt: "9) 哪个模块可以在一个范围内生成一个随机数？" }, 10: { prompt: "10) 如何创建一个角色的临时副本？" } },
+            explanations: { 1: "“当绿旗被点击”模块是一个事件模块。这是项目运行时启动脚本最常用的方式。", 2: "“移动10步”模块是一个基本的运动模块。它使角色朝着当前面向的方向移动。", 3: "“重复执行”模块是一个控制模块，可以创建一个无限循环。放在里面的任何模块都会一遍又一遍地运行。", 4: "“说 你好！ 2秒”模块是一个外观模块。它通过显示一个持续设定时间的对话气泡来让你的角色“说话”。", 5: "变量用于存储信息。你可以在“变量”面板中通过点击“建立一个变量”按钮来创建它们。", 6: "“<碰到边缘?>”模块是一个侦测模块。它是一个六边形的模块，返回真或假，非常适合在“如果”语句中使用。", 7: "“播放声音 喵 直到播放完毕”模块是一个声音模块。与“播放声音”不同，这个模块会暂停脚本，直到声音完全播放完毕。", 8: "“询问 你叫什么名字？ 并等待”模块是一个侦测模块。它提示用户输入，他们的回答存储在特殊的“回答”变量中。", 9: "“在1到10之间取随机数”模块是一个运算模块。它对于为游戏和动画增加不可预测性非常有用。", 10: "“克隆我自己”模块是一个控制模块。克隆是创建角色多个副本的强大功能，比如游戏中的子弹或敌人。" },
+            feedback: { p1_ok: "正确！这是主要的事件模块。", p1_err: "不完全对。想想你点击开始的绿色符号。", p2_ok: "答对了！一个经典的运动模块。", p2_err: "不正确。哪个模块是用来移动的？", p3_ok: "完全正确！这样就创建了一个无限循环。", p3_err: "错误的模块。你如何让某些东西不停地重复？", p4_ok: "完美！角色在说话。", p4_err: "这不是制作对话气泡的正确方法。", p5_ok: "是的！这就是你创建新变量的方式。", p5_err: "在“变量”模块类别中查找。", p6_ok: "正确！这是一个关键的侦测模块。", p6_err: "这不是用于碰撞的正确侦测模块。", p7_ok: "太好了！脚本会等待声音播放完毕。", p7_err: "检查声音模块，找一个会等待的。", p8_ok: "答对了！用户的输入将在“回答”中。", p8_err: "不正确。哪个模块用于用户输入？", p9_ok: "是的！这就是你获得随机数的方式。", p9_err: "在绿色的运算类别中查找。", p10_ok: "完全正确！这是克隆的开始。", p10_err: "不正确。这是一个用于制作副本的特殊控制模块。", generic_error: "嗯，这似乎不对。检查你的拼写。", timeUp: "时间到！⌛", firstTry: "首次尝试奖励！✅", speedster: "速通奖励！", streak: "连胜" }
+        },
+        hi: {
+            ui: { mainTitle: "मौज-मस्ती और सीखने का क्षेत्र", gameScratchTutorial: "🛠️ स्क्रैच ट्यूटोरियल", gameScratchBlocks: "🧩 स्क्रैच ब्लॉक्स", gameMath: "🧮 गणित", gameRPS: "💎 RPS", gameHangman: "💀 हैंगमैन", gameInvaders: "👾 आक्रमणकारी", score: "स्कोर", lives: "जीवन", time: "समय", yourName: "आपका नाम", startPrompt: "शुरू करने के लिए अपना नाम दर्ज करें", gameOverTitle: "खेल समाप्त", tryAgain: "पुनः प्रयास करें", quit: "छोड़ें", thanksForPlaying: "खेलने के लिए धन्यवाद!", creditsCoder: "कोडर: Marcus Kidd", creditsDesigner: "डिज़ाइनर और गेम डायरेक्टर: Adam Ashraf", creditsTester: "बीटा टेस्टर: Aiden Reid", creditsSpecialThanks: "हमें यह विकसित करने का अवसर देने के लिए प्राइमरी कोडिंग लीग का धन्यवाद।", backToMenu: "मुख्य मेनू पर वापस जाएं", congrats: "बधाई हो! आपने सभी पहेलियाँ पूरी कर ली हैं!", checkButton: "जाँचें", showAnswerButton: "उत्तर दिखाएँ", nextButton: "अगला प्रश्न", allGamesUnlocked: "बधाई हो! 🥳 आपने अन्य सभी गेम अनलॉक कर दिए हैं!", },
+            math: { title: "गणित चुनौती", add: "जोड़", sub: "घटाव", mul: "गुणा", easy: "आसान", medium: "मध्यम", hard: "कठिन", yourAnswer: "आपका उत्तर...", submit: "प्रस्तुत करें", reset: "रीसेट करें", correct: "सही! 🎉", tryAgain: "पुनः प्रयास करें!", },
+            rps: { title: "पत्थर, कागज, कैंची", player: "खिलाड़ी", computer: "कंप्यूटर", chooseMove: "अपनी चाल चुनें!", tie: "यह एक टाई है!", win: "आप जीत गए! 🎉", lose: "आप हार गए! 😢", },
+            hangman: { title: "हैंगमैन", mode: "मोड:", regular: "नियमित", mathsTerms: "गणित की शर्तें", newWord: "नया शब्द", win: "बधाई हो, आप जीत गए! 🎉", lose: "खेल समाप्त! शब्द था", },
+            puzzles: { 1: { prompt: "1) खेल शुरू होने पर आप एक स्क्रिप्ट कैसे शुरू करते हैं?" }, 2: { prompt: "2) कौन सा ब्लॉक एक स्प्राइट को एक निर्धारित मात्रा में आगे बढ़ाता है?" }, 3: { prompt: "3) आप ब्लॉकों के एक सेट को लगातार कैसे चलाते हैं?" }, 4: { prompt: "4) एक स्प्राइट को थोड़े समय के लिए एक स्पीच बबल दिखाएं।" }, 5: { prompt: "5) स्कोर जैसे डेटा को स्टोर करने के लिए आप एक नया वैरिएबल कैसे बनाते हैं?" }, 6: { prompt: "6) कौन सा ब्लॉक जांच सकता है कि कोई स्प्राइट स्क्रीन के किनारे को छू रहा है या नहीं?" }, 7: { prompt: "7) एक ध्वनि चलाएं और स्क्रिप्ट को तब तक प्रतीक्षा कराएं जब तक कि यह समाप्त न हो जाए।" }, 8: { prompt: "8) स्क्रीन पर एक प्रश्न दिखाकर उपयोगकर्ता से इनपुट प्राप्त करें।" }, 9: { prompt: "9) कौन सा ब्लॉक एक सीमा के भीतर एक यादृच्छिक संख्या उत्पन्न करता है?" }, 10: { prompt: "10) आप एक स्प्राइट की अस्थायी प्रतिलिपि कैसे बनाते हैं?" } },
+            explanations: { 1: "'जब हरे झंडे पर क्लिक किया गया' ब्लॉक एक इवेंट ब्लॉक है। यह आपके प्रोजेक्ट के चलने पर स्क्रिप्ट शुरू करने का सबसे आम तरीका है।", 2: "'10 कदम बढ़ाएं' ब्लॉक एक मौलिक मोशन ब्लॉक है। यह स्प्राइट को उस दिशा में ले जाता है जिस दिशा में वह वर्तमान में सामना कर रहा है।", 3: "'हमेशा' ब्लॉक एक कंट्रोल ब्लॉक है जो एक अनंत लूप बनाता है। इसके अंदर रखे गए कोई भी ब्लॉक बार-बार चलेंगे।", 4: "'2 सेकंड के लिए नमस्ते! कहें' ब्लॉक एक लुक्स ब्लॉक है। यह आपके स्प्राइट को एक निर्धारित समय के लिए एक स्पीच बबल दिखाकर 'बात' कराता है।", 5: "वैरिएबल का उपयोग जानकारी संग्रहीत करने के लिए किया जाता है। आप उन्हें 'वैरिएबल' पैलेट में 'एक वैरिएबल बनाएं' बटन पर क्लिक करके बनाते हैं।", 6: "'<किनारे को छू रहा है?>' ब्लॉक एक सेंसिंग ब्लॉक है। यह एक हेक्सागोनल ब्लॉक है जो सही या गलत लौटाता है, 'अगर' कथनों में उपयोग के लिए एकदम सही है।", 7: "'म्याऊ ध्वनि को समाप्त होने तक चलाएं' ब्लॉक एक साउंड ब्लॉक है। 'ध्वनि शुरू करें' के विपरीत, यह ब्लॉक स्क्रिप्ट को तब तक रोक देगा जब तक कि ध्वनि पूरी तरह से बजना समाप्त न हो जाए।", 8: "'आपका नाम क्या है? पूछें और प्रतीक्षा करें' ब्लॉक एक सेंसिंग ब्लॉक है। यह उपयोगकर्ता से इनपुट के लिए संकेत देता है, और उनका उत्तर विशेष 'उत्तर' वैरिएबल में संग्रहीत होता है।", 9: "'1 से 10 तक यादृच्छिक चुनें' ब्लॉक एक ऑपरेटर्स ब्लॉक है। यह गेम और एनिमेशन में अप्रत्याशितता जोड़ने के लिए बहुत उपयोगी है।", 10: "'मेरी एक प्रतिलिपि बनाएं' ब्लॉक एक कंट्रोल ब्लॉक है। क्लोनिंग एक स्प्राइट की कई प्रतियां बनाने के लिए एक शक्तिशाली सुविधा है, जैसे कि एक गेम में गोलियां या दुश्मन।" },
+            feedback: { p1_ok: "सही! यह मुख्य इवेंट ब्लॉक है।", p1_err: "पूरी तरह से नहीं। उस हरे प्रतीक के बारे में सोचें जिसे आप शुरू करने के लिए क्लिक करते हैं।", p2_ok: "आपने इसे समझ लिया! एक क्लासिक मोशन ब्लॉक।", p2_err: "गलत। आंदोलन के लिए कौन सा ब्लॉक है?", p3_ok: "बिल्कुल! यह एक अनंत लूप बनाता है।", p3_err: "गलत ब्लॉक। आप किसी चीज़ को बिना रुके कैसे दोहराते हैं?", p4_ok: "बिल्कुल सही! स्प्राइट बात कर रहा है।", p5_err: "एक स्पीच बबल बनाने का यह सही तरीका नहीं है।", p5_ok: "हाँ! इस तरह आप एक नया वैरिएबल बनाते हैं।", p6_ok: "सही! यह एक महत्वपूर्ण सेंसिंग ब्लॉक है।", p6_err: "यह टकराव के लिए सही सेंसिंग ब्लॉक नहीं है।", p7_ok: "बहुत बढ़िया! स्क्रिप्ट ध्वनि की प्रतीक्षा करेगी।", p7_err: "एक प्रतीक्षा करने वाले के लिए साउंड ब्लॉक की जाँच करें।", p8_ok: "आपने इसे समझ लिया! उपयोगकर्ता का इनपुट 'उत्तर' में होगा।", p8_err: "गलत। उपयोगकर्ता इनपुट के लिए कौन सा ब्लॉक है?", p9_ok: "हाँ! इस तरह आपको एक यादृच्छिक संख्या मिलती है।", p9_err: "हरे ऑपरेटर्स श्रेणी में देखें।", p10_ok: "बिल्कुल! यह क्लोनिंग की शुरुआत है।", p10_err: "गलत। यह प्रतियां बनाने के लिए एक विशेष नियंत्रण ब्लॉक है।", generic_error: "हम्म, यह सही नहीं लगता। अपनी वर्तनी जांचें।", timeUp: "समय समाप्त! ⌛", }
+        },
+        ar: {
+            ui: { mainTitle: "منطقة المرح والتعلم", gameScratchTutorial: "🛠️ دروس سكراتش", gameScratchBlocks: "🧩 كتل سكراتش", gameMath: "🧮 رياضيات", gameRPS: "💎 حجرة ورقة مقص", gameHangman: "💀 الجلاد", gameInvaders: "👾 الغزاة", score: "النتيجة", lives: "الحياة", time: "الوقت", yourName: "اسمك", startPrompt: "أدخل اسمك للبدء", gameOverTitle: "انتهت اللعبة", tryAgain: "حاول مرة أخرى", quit: "خروج", thanksForPlaying: "شكرا للعب!", creditsCoder: "مبرمج: Marcus Kidd", creditsDesigner: "مصمم ومدير اللعبة: Adam Ashraf", creditsTester: "مختبر بيتا: Aiden Reid", creditsSpecialThanks: "شكراً لرابطة البرمجة الابتدائية على منحنا هذه الفرصة لتطوير هذا.", backToMenu: "العودة إلى القائمة الرئيسية", congrats: "تهانينا! لقد أكملت جميع الألغاز!", checkButton: "تحقق", showAnswerButton: "أظهر الإجابة", nextButton: "السؤال التالي", allGamesUnlocked: "تهانينا! 🥳 لقد فتحت جميع الألعاب الأخرى!", },
+            math: { title: "تحدي الرياضيات", add: "جمع", sub: "طرح", mul: "ضرب", easy: "سهل", medium: "متوسط", hard: "صعب", yourAnswer: "إجابتك...", submit: "إرسال", reset: "إعادة تعيين", correct: "صحيح! 🎉", tryAgain: "حاول مرة أخرى!", },
+            rps: { title: "حجرة، ورقة، مقص", player: "لاعب", computer: "الحاسوب", chooseMove: "اختر حركتك!", tie: "إنه تعادل!", win: "لقد فزت! 🎉", lose: "لقد خسرت! 😢", },
+            hangman: { title: "الجلاد", mode: "الوضع:", regular: "عادي", mathsTerms: "مصطلحات الرياضيات", newWord: "كلمة جديدة", win: "تهانينا، لقد فزت! 🎉", lose: "انتهت اللعبة! كانت الكلمة", },
+            puzzles: { 1: { prompt: "1) كيف تبدأ برنامجًا نصيًا عند بدء اللعبة؟" }, 2: { prompt: "2) أي كتلة تحرك كائنًا إلى الأمام بمقدار محدد؟" }, 3: { prompt: "3) كيف تجعل مجموعة من الكتل تعمل بشكل مستمر؟" }, 4: { prompt: "4) اجعل كائنًا يظهر فقاعة كلام لفترة قصيرة." }, 5: { prompt: "5) كيف تنشئ متغيرًا جديدًا لتخزين البيانات مثل النتيجة؟" }, 6: { prompt: "6) أي كتلة يمكنها التحقق مما إذا كان الكائن يلامس حافة الشاشة؟" }, 7: { prompt: "7) قم بتشغيل صوت واجعل البرنامج النصي ينتظر حتى ينتهي." }, 8: { prompt: "8) احصل على مدخلات من المستخدم عن طريق إظهار سؤال على الشاشة." }, 9: { prompt: "9) أي كتلة تولد رقمًا عشوائيًا ضمن نطاق؟" }, 10: { prompt: "10) كيف تنشئ نسخة مؤقتة من كائن؟" } },
+            explanations: { 1: "كتلة 'عند النقر على العلم الأخضر' هي كتلة حدث. إنها الطريقة الأكثر شيوعًا لبدء البرامج النصية عند تشغيل مشروعك.", 2: "كتلة 'تحرك 10 خطوات' هي كتلة حركة أساسية. إنها تحرك الكائن في الاتجاه الذي يواجهه حاليًا.", 3: "كتلة 'كرر باستمرار' هي كتلة تحكم تنشئ حلقة لا نهائية. سيتم تشغيل أي كتل موضوعة بداخلها مرارًا وتكرارًا.", 4: "كتلة 'قل مرحبًا! لمدة 2 ثانية' هي كتلة مظهر. إنها تجعل الكائن 'يتحدث' عن طريق إظهار فقاعة كلام لفترة محددة من الوقت.", 5: "تستخدم المتغيرات لتخزين المعلومات. يمكنك إنشاؤها في لوحة 'المتغيرات' عن طريق النقر فوق الزر 'إنشاء متغير'.", 6: "كتلة '<ملامسة للحافة؟>' هي كتلة استشعار. إنها كتلة سداسية تعيد صواب أو خطأ، وهي مثالية للاستخدام في عبارات 'إذا'.", 7: "كتلة 'شغل الصوت مواء حتى النهاية' هي كتلة صوت. على عكس 'ابدأ الصوت'، ستوقف هذه الكتلة البرنامج النصي مؤقتًا حتى ينتهي تشغيل الصوت تمامًا.", 8: "كتلة 'اسأل ما اسمك؟ وانتظر' هي كتلة استشعار. إنها تطالب المستخدم بالإدخال، ويتم تخزين إجابته في متغير 'الإجابة' الخاص.", 9: "كتلة 'اختر رقمًا عشوائيًا بين 1 و 10' هي كتلة عمليات. إنها مفيدة جدًا لإضافة عدم القدرة على التنبؤ إلى الألعاب والرسوم المتحركة.", 10: "كتلة 'أنشئ نسخة من نفسي' هي كتلة تحكم. الاستنساخ ميزة قوية لإنشاء نسخ متعددة من كائن، مثل الرصاص أو الأعداء في لعبة." },
+            feedback: { p1_ok: "صحيح! هذه هي كتلة الحدث الرئيسية.", p1_err: "ليس تمامًا. فكر في الرمز الأخضر الذي تنقر عليه للبدء.", p2_ok: "لقد فهمت! كتلة حركة كلاسيكية.", p2_err: "غير صحيح. أي كتلة للحركة؟", p3_ok: "بالضبط! هذا ينشئ حلقة لا نهائية.", p3_err: "كتلة خاطئة. كيف تجعل شيئًا يتكرر دون توقف؟", p4_ok: "ممتاز! الكائن يتحدث.", p4_err: "هذه ليست الطريقة الصحيحة لعمل فقاعة كلام.", p5_ok: "نعم! هكذا تنشئ متغيرًا جديدًا.", p6_ok: "صحيح! هذه كتلة استشعار رئيسية.", p6_err: "هذه ليست كتلة الاستشعار الصحيحة للتصادمات.", p7_ok: "رائع! سينتظر البرنامج النصي الصوت.", p7_err: "تحقق من كتل الصوت بحثًا عن كتلة تنتظر.", p8_ok: "لقد فهمت! سيكون إدخال المستخدم في 'الإجابة'.", p8_err: "غير صحيح. أي كتلة لإدخال المستخدم؟", p9_ok: "نعم! هكذا تحصل على رقم عشوائي.", p9_err: "ابحث في فئة العمليات الخضراء.", p10_ok: "بالضبط! هذه هي بداية الاستنساخ.", p10_err: "غير صحيح. هذه كتلة تحكم خاصة لعمل نسخ.", generic_error: "هممم، هذا لا يبدو صحيحًا. تحقق من إملائك.", timeUp: "انتهى الوقت! ⌛", }
+        },
+        bn: {
+            ui: { mainTitle: "মজা এবং শেখার জোন", gameScratchTutorial: "🛠️ স্ক্র্যাচ টিউটোরিয়াল", gameScratchBlocks: "🧩 স্ক্র্যাচ ব্লক", gameMath: "🧮 গণিত", gameRPS: "💎 RPS", gameHangman: "💀 হ্যাংম্যান", gameInvaders: "👾 আক্রমণকারী", score: "স্কোর", lives: "জীবন", time: "সময়", yourName: "আপনার নাম", startPrompt: "শুরু করতে আপনার নাম লিখুন", gameOverTitle: "খেলা শেষ", tryAgain: "আবার চেষ্টা করুন", quit: "প্রস্থান", thanksForPlaying: "খেলার জন্য ধন্যবাদ!", creditsCoder: "কোডার: Marcus Kidd", creditsDesigner: "ডিজাইনার এবং গেম ডিরেক্টর: Adam Ashraf", creditsTester: "বিটা পরীক্ষক: Aiden Reid", creditsSpecialThanks: "আমাদের এটি বিকাশের সুযোগ দেওয়ার জন্য প্রাইমারি কোডিং লীগকে ধন্যবাদ।", backToMenu: "প্রধান মেনুতে ফিরে যান", congrats: "অভিনন্দন! আপনি সমস্ত ধাঁধা সম্পন্ন করেছেন!", checkButton: "চেক করুন", showAnswerButton: "উত্তর দেখান", nextButton: "পরবর্তী প্রশ্ন", allGamesUnlocked: "অভিনন্দন! 🥳 আপনি অন্য সব গেম আনলক করেছেন!", },
+            math: { title: "গণিত চ্যালেঞ্জ", add: "যোগ", sub: "বিয়োগ", mul: "গুণ", easy: "সহজ", medium: "মাঝারি", hard: "কঠিন", yourAnswer: "আপনার উত্তর...", submit: "জমা দিন", reset: "রিসেট", correct: "সঠিক! 🎉", tryAgain: "আবার চেষ্টা করুন!", },
+            rps: { title: "পাথর, কাগজ, কাঁচি", player: "খেলোয়াড়", computer: "কম্পিউটার", chooseMove: "আপনার পদক্ষেপ চয়ন করুন!", tie: "এটা একটা টাই!", win: "আপনি জিতেছেন! 🎉", lose: "আপনি হেরেছেন! 😢", },
+            hangman: { title: "হ্যাংম্যান", mode: "মোড:", regular: "নিয়মিত", mathsTerms: "গণিতের শর্তাবলী", newWord: "নতুন শব্দ", win: "অভিনন্দন, আপনি জিতেছেন! 🎉", lose: "খেলা শেষ! শব্দটি ছিল", },
+            puzzles: { 1: { prompt: "1) খেলা শুরু হলে আপনি কিভাবে একটি স্ক্রিপ্ট শুরু করবেন?" }, 2: { prompt: "2) কোন ব্লক একটি স্প্রাইটকে একটি নির্দিষ্ট পরিমাণে এগিয়ে নিয়ে যায়?" }, 3: { prompt: "3) আপনি কিভাবে ব্লকের একটি সেট ক্রমাগত চালাতে পারেন?" }, 4: { prompt: "4) একটি স্প্রাইটকে অল্প সময়ের জন্য একটি স্পিচ বাবল দেখাতে দিন।" }, 5: { prompt: "5) স্কোরের মতো ডেটা সংরক্ষণ করার জন্য আপনি কিভাবে একটি নতুন ভেরিয়েবল তৈরি করবেন?" }, 6: { prompt: "6) কোন ব্লক পরীক্ষা করতে পারে যে একটি স্প্রাইট স্ক্রিনের প্রান্তে স্পর্শ করছে কিনা?" }, 7: { prompt: "7) একটি শব্দ চালান এবং স্ক্রিপ্টটি শেষ না হওয়া পর্যন্ত অপেক্ষা করতে দিন।" }, 8: { prompt: "8) স্ক্রিনে একটি প্রশ্ন দেখিয়ে ব্যবহারকারীর কাছ থেকে ইনপুট নিন।" }, 9: { prompt: "9) কোন ব্লক একটি পরিসরের মধ্যে একটি এলোমেলো সংখ্যা তৈরি করে?" }, 10: { prompt: "10) আপনি কিভাবে একটি স্প্রাইটের একটি অস্থায়ী অনুলিপি তৈরি করবেন?" } },
+            explanations: { 1: "'যখন সবুজ পতাকায় ক্লিক করা হয়' ব্লকটি একটি ইভেন্ট ব্লক। আপনার প্রকল্প চলার সময় স্ক্রিপ্ট শুরু করার এটি সবচেয়ে সাধারণ উপায়।", 2: "'10 ধাপ সরান' ব্লকটি একটি মৌলিক গতি ব্লক। এটি স্প্রাইটকে যে দিকে মুখ করে আছে সেদিকে নিয়ে যায়।", 3: "'চিরতরে' ব্লকটি একটি নিয়ন্ত্রণ ব্লক যা একটি অসীম লুপ তৈরি করে। এর ভিতরে রাখা যেকোনো ব্লক বারবার চলতে থাকবে।", 4: "'2 সেকেন্ডের জন্য হ্যালো! বলুন' ব্লকটি একটি চেহারা ব্লক। এটি আপনার স্প্রাইটকে একটি নির্দিষ্ট সময়ের জন্য একটি স্পিচ বাবল দেখিয়ে 'কথা' বলায়।", 5: "ভেরিয়েবল তথ্য সংরক্ষণ করতে ব্যবহৃত হয়। আপনি 'ভেরিয়েবল' প্যালেটে 'একটি ভেরিয়েবল তৈরি করুন' বোতামে ক্লিক করে সেগুলি তৈরি করেন।", 6: "'<প্রান্তে স্পর্শ করছে?>' ব্লকটি একটি সেন্সিং ব্লক। এটি একটি ষড়ভুজাকার ব্লক যা সত্য বা মিথ্যা প্রদান করে, 'যদি' বিবৃতিতে ব্যবহারের জন্য উপযুক্ত।", 7: "'শেষ না হওয়া পর্যন্ত মিউ শব্দ চালান' ব্লকটি একটি শব্দ ব্লক। 'শব্দ শুরু করুন' এর বিপরীতে, এই ব্লকটি শব্দটি পুরোপুরি শেষ না হওয়া পর্যন্ত স্ক্রিপ্টটি থামিয়ে রাখবে।", 8: "'আপনার নাম কি? জিজ্ঞাসা করুন এবং অপেক্ষা করুন' ব্লকটি একটি সেন্সিং ব্লক। এটি ব্যবহারকারীকে ইনপুটের জন্য অনুরোধ করে, এবং তাদের উত্তর বিশেষ 'উত্তর' ভেরিয়েবলে সংরক্ষণ করা হয়।", 9: "'1 থেকে 10 এর মধ্যে এলোমেলো বাছুন' ব্লকটি একটি অপারেটর ব্লক। এটি গেম এবং অ্যানিমেশনে অনির্দেশ্যতা যোগ করার জন্য খুব দরকারী।", 10: "'আমার একটি ক্লোন তৈরি করুন' ব্লকটি একটি নিয়ন্ত্রণ ব্লক। ক্লোনিং একটি স্প্রাইটের একাধিক অনুলিপি তৈরি করার জন্য একটি শক্তিশালী বৈশিষ্ট্য, যেমন একটি গেমে বুলেট বা শত্রু।" },
+            feedback: { p1_ok: "সঠিক! এটি প্রধান ইভেন্ট ব্লক।", p1_err: "ঠিক নয়। আপনি শুরু করার জন্য যে সবুজ প্রতীকে ক্লিক করেন সেটির কথা ভাবুন।", p2_ok: "আপনি পেরেছেন! একটি ক্লাসিক গতি ব্লক।", p2_err: "ভুল। কোন ব্লকটি চলাচলের জন্য?", p3_ok: "ঠিক! এটি একটি অসীম লুপ তৈরি করে।", p3_err: "ভুল ব্লক। আপনি কিভাবে কিছু না থামিয়ে পুনরাবৃত্তি করান?", p4_ok: "চমৎকার! স্প্রাইটটি কথা বলছে।", p5_err: "একটি স্পিচ বাবল তৈরি করার এটি সঠিক উপায় নয়।", p5_ok: "হ্যাঁ! এভাবেই আপনি একটি নতুন ভেরিয়েবল তৈরি করেন।", p6_ok: "সঠিক! এটি একটি গুরুত্বপূর্ণ সেন্সিং ব্লক।", p6_err: "এটি সংঘর্ষের জন্য সঠিক সেন্সিং ব্লক নয়।", p7_ok: "দারুণ! স্ক্রিপ্টটি শব্দের জন্য অপেক্ষা করবে।", p7_err: "অপেক্ষা করে এমন একটির জন্য শব্দ ব্লকগুলি পরীক্ষা করুন।", p8_ok: "আপনি পেরেছেন! ব্যবহারকারীর ইনপুট 'উত্তর'-এ থাকবে।", p8_err: "ভুল। ব্যবহারকারীর ইনপুটের জন্য কোন ব্লকটি?", p9_ok: "হ্যাঁ! এভাবেই আপনি একটি এলোমেলো সংখ্যা পান।", p9_err: "সবুজ অপারেটর বিভাগে দেখুন।", p10_ok: "ঠিক! এটি ক্লোনিংয়ের শুরু।", p10_err: "ভুল। এটি অনুলিপি তৈরির জন্য একটি বিশেষ নিয়ন্ত্রণ ব্লক।", generic_error: "হুম, এটা ঠিক মনে হচ্ছে না। আপনার বানান পরীক্ষা করুন।", timeUp: "সময় শেষ! ⌛", }
+        },
+        ru: {
+            ui: { mainTitle: "Зона развлечений и обучения", gameScratchTutorial: "🛠️ Учебник по Scratch", gameScratchBlocks: "🧩 Блоки Scratch", gameMath: "🧮 Математика", gameRPS: "💎 Камень-ножницы-бумага", gameHangman: "💀 Виселица", gameInvaders: "👾 Захватчики", score: "Счет", lives: "Жизни", time: "Время", yourName: "Ваше имя", startPrompt: "Введите ваше имя, чтобы начать", gameOverTitle: "ИГРА ОКОНЧЕНА", tryAgain: "Попробовать снова", quit: "Выйти", thanksForPlaying: "Спасибо за игру!", creditsCoder: "Программист: Marcus Kidd", creditsDesigner: "Дизайнер и руководитель игры: Adam Ashraf", creditsTester: "Бета-тестер: Aiden Reid", creditsSpecialThanks: "Спасибо Primary Coding League за предоставленную возможность разработать это.", backToMenu: "Вернуться в главное меню", congrats: "Поздравляем! Вы решили все головоломки!", checkButton: "Проверить", showAnswerButton: "Показать ответ", nextButton: "Следующий вопрос", allGamesUnlocked: "Поздравляем! 🥳 Вы открыли все остальные игры!", },
+            math: { title: "Математический вызов", add: "Сложение", sub: "Вычитание", mul: "Умножение", easy: "Легко", medium: "Средне", hard: "Сложно", yourAnswer: "Ваш ответ...", submit: "Отправить", reset: "Сброс", correct: "Правильно! 🎉", tryAgain: "Попробуйте еще раз!", },
+            rps: { title: "Камень, ножницы, бумага", player: "Игрок", computer: "Компьютер", chooseMove: "Выберите ваш ход!", tie: "Ничья!", win: "Вы выиграли! 🎉", lose: "Вы проиграли! 😢", },
+            hangman: { title: "Виселица", mode: "Режим:", regular: "Обычный", mathsTerms: "Математические термины", newWord: "Новое слово", win: "Поздравляем, вы выиграли! 🎉", lose: "Игра окончена! Слово было", },
+            puzzles: { 1: { prompt: "1) Как запустить скрипт, когда игра начинается?" }, 2: { prompt: "2) Какой блок перемещает спрайт вперед на заданное расстояние?" }, 3: { prompt: "3) Как заставить набор блоков выполняться непрерывно?" }, 4: { prompt: "4) Заставьте спрайт показать речевой пузырь на короткое время." }, 5: { prompt: "5) Как создать новую переменную для хранения данных, таких как счет?" }, 6: { prompt: "6) Какой блок может проверить, касается ли спрайт края экрана?" }, 7: { prompt: "7) Воспроизведите звук и заставьте скрипт ждать его окончания." }, 8: { prompt: "8) Получите ввод от пользователя, показав вопрос на экране." }, 9: { prompt: "9) Какой блок генерирует случайное число в заданном диапазоне?" }, 10: { prompt: "10) Как создать временную копию спрайта?" } },
+            explanations: { 1: "Блок 'Когда зеленый флаг нажат' — это блок события. Это самый распространенный способ запускать скрипты при запуске вашего проекта.", 2: "Блок 'идти 10 шагов' — это основной блок движения. Он перемещает спрайт в том направлении, в котором он сейчас смотрит.", 3: "Блок 'повторять всегда' — это блок управления, который создает бесконечный цикл. Любые блоки, помещенные внутрь, будут выполняться снова и снова.", 4: "Блок 'говорить Привет! 2 секунд' — это блок внешности. Он заставляет ваш спрайт 'говорить', показывая речевой пузырь в течение заданного времени.", 5: "Переменные используются для хранения информации. Вы создаете их на палитре 'Переменные', нажав кнопку 'Создать переменную'.", 6: "Блок '<касается края?>' — это блок сенсоров. Это шестиугольный блок, который возвращает истину или ложь, идеально подходит для использования в операторах 'если'.", 7: "Блок 'играть звук Мяу до конца' — это блок звука. В отличие от 'начать звук', этот блок приостановит скрипт до тех пор, пока звук не закончится полностью.", 8: "Блок 'спросить Как тебя зовут? и ждать' — это блок сенсоров. Он запрашивает ввод у пользователя, и его ответ сохраняется в специальной переменной 'ответ'.", 9: "Блок 'выдать случайное от 1 до 10' — это блок операторов. Он очень полезен для добавления непредсказуемости в игры и анимации.", 10: "Блок 'создать клон себя' — это блок управления. Клонирование — это мощная функция для создания нескольких копий спрайта, таких как пули или враги в игре." },
+            feedback: { p1_ok: "Правильно! Это основной блок события.", p1_err: "Не совсем. Подумайте о зеленом символе, который вы нажимаете для запуска.", p2_ok: "Вы поняли! Классический блок движения.", p2_err: "Неправильно. Какой блок отвечает за движение?", p3_ok: "Точно! Это создает бесконечный цикл.", p3_err: "Неправильный блок. Как заставить что-то повторяться без остановки?", p4_ok: "Идеально! Спрайт говорит.", p4_err: "Это неверный способ создать речевой пузырь.", p5_ok: "Да! Вот как вы создаете новую переменную.", p6_ok: "Правильно! Это ключевой блок сенсоров.", p6_err: "Это не тот сенсорный блок для столкновений.", p7_ok: "Отлично! Скрипт будет ждать звук.", p7_err: "Проверьте звуковые блоки на тот, который ждет.", p8_ok: "Вы поняли! Ввод пользователя будет в 'ответе'.", p8_err: "Неправильно. Какой блок отвечает за ввод пользователя?", p9_ok: "Да! Вот как вы получаете случайное число.", p9_err: "Посмотрите в зеленой категории операторов.", p10_ok: "Точно! Это начало клонирования.", p10_err: "Неправильно. Это специальный блок управления для создания копий.", generic_error: "Хм, кажется, что-то не так. Проверьте правописание.", timeUp: "Время вышло! ⌛", }
+        },
+        pt: {
+            ui: { mainTitle: "Zona de Diversão e Aprendizagem", gameScratchTutorial: "🛠️ Tutorial de Scratch", gameScratchBlocks: "🧩 Blocos de Scratch", gameMath: "🧮 Matemática", gameRPS: "💎 Pedra, Papel, Tesoura", gameHangman: "💀 Forca", gameInvaders: "👾 Invasores", score: "Pontuação", lives: "Vidas", time: "Tempo", yourName: "Seu nome", startPrompt: "Digite seu nome para começar", gameOverTitle: "FIM DE JOGO", tryAgain: "Tentar Novamente", quit: "Sair", thanksForPlaying: "Obrigado por jogar!", creditsCoder: "Programador: Marcus Kidd", creditsDesigner: "Designer e Diretor do Jogo: Adam Ashraf", creditsTester: "Testador Beta: Aiden Reid", creditsSpecialThanks: "Agradecemos à Primary Coding League por nos dar esta oportunidade de desenvolver isto.", backToMenu: "Voltar ao Menu Principal", congrats: "Parabéns! Você completou todos os quebra-cabeças!", checkButton: "Verificar", showAnswerButton: "Mostrar Resposta", nextButton: "Próxima Pergunta", allGamesUnlocked: "Parabéns! 🥳 Você desbloqueou todos os outros jogos!", },
+            math: { title: "Desafio de Matemática", add: "Adição", sub: "Subtração", mul: "Multiplicação", easy: "Fácil", medium: "Médio", hard: "Difícil", yourAnswer: "Sua resposta...", submit: "Enviar", reset: "Reiniciar", correct: "Correto! 🎉", tryAgain: "Tente novamente!", },
+            rps: { title: "Pedra, Papel, Tesoura", player: "Jogador", computer: "Computador", chooseMove: "Escolha sua jogada!", tie: "É um empate!", win: "Você venceu! 🎉", lose: "Você perdeu! 😢", },
+            hangman: { title: "Forca", mode: "Modo:", regular: "Normal", mathsTerms: "Termos de matemática", newWord: "Nova Palavra", win: "Parabéns, você venceu! 🎉", lose: "Fim de jogo! A palavra era", },
+            puzzles: { 1: { prompt: "1) Como você inicia um script quando o jogo começa?" }, 2: { prompt: "2) Qual bloco move um sprite para a frente por uma quantidade definida?" }, 3: { prompt: "3) Como você faz um conjunto de blocos ser executado continuamente?" }, 4: { prompt: "4) Faça um sprite mostrar um balão de fala por um curto período." }, 5: { prompt: "5) Como você cria uma nova variável para armazenar dados como uma pontuação?" }, 6: { prompt: "6) Qual bloco pode verificar se um sprite está tocando a borda da tela?" }, 7: { prompt: "7) Toque um som и faça o script esperar até que termine." }, 8: { prompt: "8) Obtenha entrada do usuário mostrando uma pergunta na tela." }, 9: { prompt: "9) Qual bloco gera um número aleatório dentro de um intervalo?" }, 10: { prompt: "10) Como você cria uma cópia temporária de um sprite?" } },
+            explanations: { 1: "O bloco 'Quando a bandeira verde for clicada' é um bloco de Evento. É a maneira mais comum de iniciar scripts quando seu projeto é executado.", 2: "O bloco 'mova 10 passos' é um bloco de Movimento fundamental. Ele move o sprite na direção em que está virado.", 3: "O bloco 'sempre' é um bloco de Controle que cria um loop infinito. Quaisquer blocos colocados dentro dele serão executados repetidamente.", 4: "O bloco 'diga Olá! por 2 segundos' é um bloco de Aparência. Ele faz seu sprite 'falar' mostrando um balão de fala por um tempo definido.", 5: "Variáveis são usadas para armazenar informações. Você as cria na paleta 'Variáveis' clicando no botão 'Criar uma Variável'.", 6: "O bloco '<tocando na borda?>' é um bloco de Sensores. É um bloco hexagonal que retorna verdadeiro ou falso, perfeito para uso em declarações 'se'.", 7: "O bloco 'toque o som Miau até o fim' é um bloco de Som. Diferente de 'inicie o som', este bloco pausará o script até que o som tenha terminado de tocar completamente.", 8: "O bloco 'pergunte Qual é o seu nome? e espere' é um bloco de Sensores. Ele solicita a entrada do usuário, e sua resposta é armazenada na variável especial 'resposta'.", 9: "O bloco 'número aleatório entre 1 e 10' é um bloco de Operadores. É muito útil para adicionar imprevisibilidade a jogos e animações.", 10: "O bloco 'crie clone de mim mesmo' é um bloco de Controle. Clonagem é um recurso poderoso para criar múltiplas cópias de um sprite, como balas ou inimigos em um jogo." },
+            feedback: { p1_ok: "Correto! Esse é o bloco de evento principal.", p1_err: "Não exatamente. Pense no símbolo verde que você clica para começar.", p2_ok: "Você acertou! Um bloco de movimento clássico.", p2_err: "Incorreto. Qual bloco é para movimento?", p3_ok: "Exatamente! Isso cria um loop infinito.", p3_err: "Bloco errado. Como você faz algo se repetir sem parar?", p4_ok: "Perfeito! O sprite está falando.", p4_err: "Essa não é a maneira correta de fazer um balão de fala.", p5_ok: "Sim! É assim que você cria uma nova variável.", p6_ok: "Correto! Esse é um bloco de sensor chave.", p6_err: "Esse не é o bloco de sensor correto para colisões.", p7_ok: "Ótimo! O script vai esperar pelo som.", p7_err: "Verifique os blocos de som por um que espere.", p8_ok: "Você acertou! A entrada do usuário estará em 'resposta'.", p8_err: "Incorreto. Qual bloco é para a entrada do usuário?", p9_ok: "Sim! É assim que você obtém um número aleatório.", p9_err: "Procure na categoria verde de Operadores.", p10_ok: "Exatamente! Esse é o começo da clonagem.", p10_err: "Incorreto. Este é um bloco de controle especial para fazer cópias.", generic_error: "Hmm, isso não parece certo. Verifique sua ortografia.", timeUp: "O tempo acabou! ⌛", }
+        },
+        ja: {
+            ui: { mainTitle: "楽しく学ぶゾーン", gameScratchTutorial: "🛠️ Scratchチュートリアル", gameScratchBlocks: "🧩 Scratchブロック", gameMath: "🧮 算数", gameRPS: "💎 じゃんけん", gameHangman: "💀 ハングマン", gameInvaders: "👾 インベーダー", score: "スコア", lives: "ライフ", time: "時間", yourName: "あなたの名前", startPrompt: "名前を入力して開始", gameOverTitle: "ゲームオーバー", tryAgain: "もう一度プレイ", quit: "終了", thanksForPlaying: "プレイしていただきありがとうございます！", creditsCoder: "コーダー: Marcus Kidd", creditsDesigner: "デザイナー＆ゲームディレクター: Adam Ashraf", creditsTester: "ベータテスター: Aiden Reid", creditsSpecialThanks: "この開発の機会を与えてくださったPrimary Coding Leagueに感謝します。", backToMenu: "メインメニューに戻る", congrats: "おめでとうございます！すべてのパズルをクリアしました！", checkButton: "チェック", showAnswerButton: "答えを表示", nextButton: "次の問題", allGamesUnlocked: "おめでとうございます！🥳 他のすべてのゲームがアンロックされました！", },
+            math: { title: "算数チャレンジ", add: "足し算", sub: "引き算", mul: "掛け算", easy: "簡単", medium: "普通", hard: "難しい", yourAnswer: "あなたの答え...", submit: "送信", reset: "リセット", correct: "正解！🎉", tryAgain: "もう一度挑戦！", },
+            rps: { title: "じゃんけん", player: "プレイヤー", computer: "コンピューター", chooseMove: "手を選んでください！", tie: "あいこです！", win: "あなたの勝ちです！🎉", lose: "あなたの負けです！😢", },
+            hangman: { title: "ハングマン", mode: "モード:", regular: "通常", mathsTerms: "数学用語", newWord: "新しい単語", win: "おめでとう、あなたの勝ちです！🎉", lose: "ゲームオーバー！正解は", },
+            puzzles: { 1: { prompt: "1) ゲームが始まるときにスクリプトを開始するにはどうすればよいですか？" }, 2: { prompt: "2) スプライトを一定量前進させるブロックはどれですか？" }, 3: { prompt: "3) ブロックのセットを継続的に実行させるにはどうすればよいですか？" }, 4: { prompt: "4) スプライトに短い間、吹き出しを表示させてください。" }, 5: { prompt: "5) スコアなどのデータを保存するために新しい変数を作成するにはどうすればよいですか？" }, 6: { prompt: "6) スプライトが画面の端に触れているかどうかを確認できるブロックはどれですか？" }, 7: { prompt: "7) サウンドを再生し、それが終了するまでスクリプトを待機させてください。" }, 8: { prompt: "8) 画面に質問を表示して、ユーザーから入力を受け取ってください。" }, 9: { prompt: "9) 範囲内の乱数を生成するブロックはどれですか？" }, 10: { prompt: "10) スプライトの一時的なコピーを作成するにはどうすればよいですか？" } },
+            explanations: { 1: "「緑の旗がクリックされたとき」ブロックはイベントブロックです。プロジェクト実行時にスクリプトを開始する最も一般的な方法です。", 2: "「10歩動かす」ブロックは基本的な動きのブロックです。スプライトが現在向いている方向に移動させます。", 3: "「ずっと」ブロックは無限ループを作成する制御ブロックです。この中に入れられたブロックは何度も繰り返し実行されます。", 4: "「こんにちは！と2秒言う」ブロックは見た目のブロックです。設定された時間、吹き出しを表示することでスプライトに「話させる」ことができます。", 5: "変数は情報を保存するために使用されます。「変数」パレットの「変数を作る」ボタンをクリックして作成します。", 6: "「<端に触れた？>」ブロックは調べるブロックです。これは真または偽を返す六角形のブロックで、「もし」文での使用に最適です。", 7: "「ニャーの音を鳴らし終わるまで待つ」ブロックは音のブロックです。「音を鳴らす」とは異なり、このブロックは音が完全に終了するまでスクリプトを一時停止します。", 8: "「あなたの名前は何ですか？と聞いて待つ」ブロックは調べるブロックです。ユーザーに入力を促し、その答えは特別な「答え」変数に保存されます。", 9: "「1から10までの乱数」ブロックは演算ブロックです。ゲームやアニメーションに予測不可能性を加えるのに非常に便利です。", 10: "「自分のクローンを作る」ブロックは制御ブロックです。クローニングは、ゲームの弾丸や敵のように、スプライトの複数のコピーを作成するための強力な機能です。" },
+            feedback: { p1_ok: "正解です！それがメインのイベントブロックです。", p1_err: "惜しい。開始するためにクリックする緑のシンボルを考えてみてください。", p2_ok: "その通り！古典的な動きのブロックです。", p2_err: "不正解。動きのためのブロックはどれですか？", p3_ok: "その通り！それで無限ループが作られます。", p3_err: "違うブロックです。どうすれば何かを止めずに繰り返させることができますか？", p4_ok: "完璧！スプライトが話しています。", p4_err: "それは吹き出しを作る正しい方法ではありません。", p5_ok: "はい！そうやって新しい変数を作ります。", p6_ok: "正解です！それは重要な調べるブロックです。", p6_err: "それは衝突のための正しい調べるブロックではありません。", p7_ok: "素晴らしい！スクリプトは音を待ちます。", p7_err: "待機する音ブロックを確認してください。", p8_ok: "その通り！ユーザーの入力は「答え」に入ります。", p8_err: "不正解。ユーザー入力のためのブロックはどれですか？", p9_ok: "はい！そうやって乱数を取得します。", p9_err: "緑の演算カテゴリを見てください。", p10_ok: "その通り！それがクローニングの始まりです。", p10_err: "不正解。これはコピーを作成するための特別な制御ブロックです。", generic_error: "うーん、それは正しくないようです。スペルを確認してください。", timeUp: "時間切れです！⌛", }
+        }
+    }
+};
+
+// --- Add more translations by extending the i18nData.translations object here ---
+
+// ===== FULL CODE QUEST LOGIC (Now called Scratch Blocks Quiz) =====
+const correctAnswerSound = document.getElementById('correctAnswerSound');
+const appEl = document.querySelector('.app');
+const puzzlesContainer = document.getElementById('puzzles');
+const scoreEl = document.getElementById('score-display');
+const heartsEl = document.getElementById('hearts');
+const progressEl = document.getElementById('progress-bar');
+const timerEl = document.getElementById('time-left');
+const achievementEl = document.getElementById('achievement');
+const languageSelect = document.getElementById('language-select');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const gameOverScreen = document.getElementById('game-over-screen');
+let score = 0, lives = 3, unlockedPuzzleId = 1, streak = 0;
+let timerInterval = null, timeLeft = 30, gameStarted = false, playerName = 'Player';
+let nextPuzzleTimeout = null;
+let currentLanguage = 'en';
+const solvedState = {};
+const puzzles = [ { id: 1, template: "When ___1___ clicked", blanks: [{ placeholder: "___1___", answer: "green flag" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("green flag"), msgKey: code.toLowerCase().includes("green flag") ? "p1_ok" : "p1_err" }) }, { id: 2, template: "move ___1___ steps", blanks: [{ placeholder: "___1___", answer: "10" }], testFunc: (code) => ({ ok: code.includes("10"), msgKey: code.includes("10") ? "p2_ok" : "p2_err" }) }, { id: 3, template: "___1___ loop", blanks: [{ placeholder: "___1___", answer: "forever" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("forever"), msgKey: code.toLowerCase().includes("forever") ? "p3_ok" : "p3_err" }) }, { id: 4, template: "say ___1___ for ___2___ seconds", blanks: [{ placeholder: "___1___", answer: "'Hello!'" }, { placeholder: "___2___", answer: "2" }], testFunc: (code) => { const isOk = code.toLowerCase().includes("hello") && code.includes("2"); return { ok: isOk, msgKey: isOk ? "p4_ok" : "p4_err" }; } }, { id: 5, template: "___1___ a Variable", blanks: [{ placeholder: "___1___", answer: "Make" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("make"), msgKey: code.toLowerCase().includes("make") ? "p5_ok" : "p5_err" }) }, { id: 6, template: "<touching ___1___?>", blanks: [{ placeholder: "___1___", answer: "edge" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("edge"), msgKey: code.toLowerCase().includes("edge") ? "p6_ok" : "p6_err" }) }, { id: 7, template: "play sound ___1___ until done", blanks: [{ placeholder: "___1___", answer: "Meow" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("meow"), msgKey: code.toLowerCase().includes("meow") ? "p7_ok" : "p7_err" }) }, { id: 8, template: "ask '___1___?' and wait", blanks: [{ placeholder: "___1___", answer: "What's your name" }], testFunc: (code) => ({ ok: code.toLowerCase().includes("what's your name"), msgKey: code.toLowerCase().includes("what's your name") ? "p8_ok" : "p8_err" }) }, { id: 9, template: "pick random ___1___ to ___2___", blanks: [{ placeholder: "___1___", answer: "1" }, { placeholder: "___2___", answer: "10" }], testFunc: (code) => { const isOk = /\b1\b/.test(code) && /\b10\b/.test(code); return { ok: isOk, msgKey: isOk ? "p9_ok" : "p9_err" }; } }, { id: 10, template: "create ___1___ of ___2___", blanks: [{ placeholder: "___1___", answer: "clone" }, { placeholder: "___2___", answer: "myself" }], testFunc: (code) => { const isOk = code.toLowerCase().includes("clone") && code.toLowerCase().includes("myself"); return { ok: isOk, msgKey: isOk ? "p10_ok" : "p10_err" }; } }
+].map(p => ({ ...p, usedShow: false, startTime: 0 }));
+
+function playCorrectSound() {
+    correctAnswerSound.currentTime = 0;
+    correctAnswerSound.play();
+}
+
+function triggerScreenShake() {
+  appEl.classList.add('shake');
+  setTimeout(() => appEl.classList.remove('shake'), 400);
+}
+
+function getTranslation(key) {
+    const keys = key.split('.');
+    let langData = i18nData.translations[currentLanguage] || i18nData.translations['en'];
+    let fallbackData = i18nData.translations['en'];
+    
+    let result = keys.reduce((obj, k) => (obj && obj[k] !== 'undefined') ? obj[k] : undefined, langData);
+    if (result !== undefined) return result;
+
+    let fallbackResult = keys.reduce((obj, k) => (obj && obj[k] !== 'undefined') ? obj[k] : undefined, fallbackData);
+    return fallbackResult || key;
+}
+
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n-key]').forEach(el => {
+        const key = el.dataset.i18nKey;
+        const translation = getTranslation(key);
+        // Use innerHTML for keys that might contain HTML tags like the Scratch tutorial descriptions
+        if (key.startsWith('scratch.s') && key.endsWith('_desc')) {
+            el.innerHTML = translation;
+        } else {
+            el.textContent = translation;
+        }
+    });
+    document.querySelectorAll('[data-i18n-placeholder-key]').forEach(el => {
+        const key = el.dataset.i18nPlaceholderKey;
+        el.placeholder = getTranslation(key);
+    });
+
+    // Re-render dynamic content
+    if (document.querySelector('.puzzle')) {
+        renderPuzzles();
+    }
+    if (document.getElementById('rps-result').textContent !== '?') {
+        // Potentially update RPS result text if it's not in its initial state
+    }
+    const activeScratchStep = document.querySelector('.tutorial-step.active');
+    if (activeScratchStep) {
+        const finishBtn = document.getElementById('scratch-next-btn');
+        if (finishBtn.textContent !== getTranslation('scratch.next')) {
+            finishBtn.textContent = getTranslation('scratch.finish');
+        }
+    }
+}
+
+function populateLanguageSelector() {
+    languageSelect.innerHTML = '';
+    for (const [code, name] of Object.entries(i18nData.languages)) {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        languageSelect.appendChild(option);
+    }
+    languageSelect.value = currentLanguage;
+}
+
+languageSelect.addEventListener('change', (e) => {
+    currentLanguage = e.target.value;
+    localStorage.setItem('language', currentLanguage);
+    applyTranslations();
+});
+
+function escapeHtml(s) { return s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function renderPuzzles() {
+    puzzlesContainer.innerHTML = '';
+    let puzzleRendered = false;
+    puzzles.forEach(p => {
+        if (p.id === unlockedPuzzleId) {
+            puzzleRendered = true;
+            const div = document.createElement('div');
+            div.className = 'puzzle';
+            const puzzlePrompt = getTranslation(`puzzles.${p.id}.prompt`);
+            div.innerHTML = ` <div><div class="small">${puzzlePrompt}</div><pre>${escapeHtml(p.template)}</pre> ${p.blanks.map((b, i) => `<input data-pid="${p.id}" data-idx="${i}" placeholder="${getTranslation('math.yourAnswer')}" type="text" style="margin-bottom: 8px;">`).join('')} <div id="msg-${p.id}" style="min-height: 1.2em; margin-top: 10px;"></div></div> <div><button data-action="check" data-id="${p.id}">${getTranslation("ui.checkButton")}</button> <button data-action="show" data-id="${p.id}">${getTranslation("ui.showAnswerButton")}</button></div>`;
+            puzzlesContainer.appendChild(div);
+            solvedState[p.id] = solvedState[p.id] || {};
+            solvedState[p.id].startTime = Date.now();
+        }
+    });
+    if (!puzzleRendered && gameStarted) {
+        puzzlesContainer.innerHTML = `<h2>${getTranslation("ui.congrats")}</h2>`;
+        triggerConfetti();
+        updateLeaderboard();
+        clearInterval(timerInterval);
+        unlockAllGames();
+    }
+}
+
+function moveToNextPuzzle() { unlockedPuzzleId++; renderPuzzles(); if (unlockedPuzzleId <= puzzles.length) startTimer(); updateUI(); }
+
+puzzlesContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || !gameStarted) return;
+    const action = btn.dataset.action;
+    if (lives <= 0 && action !== 'next') return;
+    if (action === 'show') {
+        const id = Number(btn.dataset.id);
+        const puzzle = puzzles.find(x => x.id === id);
+        document.querySelectorAll(`input[data-pid="${id}"]`).forEach((inp, i) => inp.value = puzzle.blanks[i].answer);
+        if(solvedState[id]) solvedState[id].usedShow = true;
+    } else if (action === 'check') {
+        const id = Number(btn.dataset.id);
+        let code = puzzles.find(x => x.id === id).template;
+        document.querySelectorAll(`input[data-pid="${id}"]`).forEach((inp, i) => {
+            code = code.replace(puzzles.find(x => x.id === id).blanks[i].placeholder, inp.value || '');
+        });
+        const res = puzzles.find(x => x.id === id).testFunc(code);
+        const msgEl = document.getElementById(`msg-${id}`);
+        if (res.ok) {
+            playCorrectSound();
+            clearInterval(timerInterval);
+            const message = getTranslation(`feedback.${res.msgKey}`);
+            const explanation = getTranslation(`explanations.${id}`);
+            const nextButtonText = getTranslation("ui.nextButton");
+            msgEl.innerHTML = `<span class="small correct">${message}</span> <div class="explanation">${explanation}</div> <button data-action="next" style="margin-top: 15px; width: 100%;">${nextButtonText}</button>`;
+            triggerConfetti();
+            if (!solvedState[id] || !solvedState[id].solved) {
+                solvedState[id] = { ...solvedState[id], solved: true };
+                score += 10 + streak * 2;
+                streak++;
+                if (!solvedState[id].usedShow) showAchievement(getTranslation("feedback.firstTry"));
+                const timeTaken = (Date.now() - solvedState[id].startTime) / 1000;
+                if (timeTaken < 10) showAchievement(`${getTranslation("feedback.speedster")} (${Math.floor(timeTaken)}s)`);
+                if (streak >= 3) showAchievement(`${getTranslation("feedback.streak")} x${streak}! 🔥`);
+                updateUI();
+            }
+            clearTimeout(nextPuzzleTimeout);
+            nextPuzzleTimeout = setTimeout(moveToNextPuzzle, 19000);
+        } else {
+            triggerScreenShake();
+            const message = getTranslation(`feedback.${res.msgKey}`);
+            const dynamicMsg = res.dynamicMsg ? escapeHtml(res.dynamicMsg) : '';
+            msgEl.innerHTML = `<span class="small wrong">${message} ${dynamicMsg}</span>`;
+            const previousLives = lives;
+            lives--;
+            streak = 0;
+            if (previousLives > lives && lives >= 0) {
+                const heartElements = heartsEl.querySelectorAll('.heart');
+                const lastHeart = heartElements[lives];
+                if (lastHeart) {
+                    lastHeart.classList.add('lost');
+                    setTimeout(() => {
+                        lastHeart.classList.remove('lost');
+                        updateUI();
+                    }, 500);
+                } else { updateUI(); }
+            } else { updateUI(); }
+            if (lives <= 0) { handleGameOver(); }
+        }
+    } else if (action === 'next') {
+        clearTimeout(nextPuzzleTimeout);
+        moveToNextPuzzle();
+    }
+});
+
+function updateUI() {
+    scoreEl.innerHTML = `<span class="trophy">🏆</span> ${getTranslation("ui.score")}: ${score}`;
+    heartsEl.innerHTML = '<span class="heart">❤️</span>'.repeat(lives);
+    document.querySelector('#lives-display [data-i18n-key]').textContent = getTranslation("ui.lives");
+    document.querySelector('#timer [data-i18n-key]').textContent = getTranslation("ui.time");
+    const progressPercentage = (Math.max(0, unlockedPuzzleId - 1) / puzzles.length) * 100;
+    progressEl.style.width = `${progressPercentage}%`;
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = 30;
+    timerEl.textContent = timeLeft;
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            triggerScreenShake();
+            const previousLives = lives;
+            lives--;
+            streak = 0;
+            if (previousLives > lives && lives >= 0) {
+                const heartElements = heartsEl.querySelectorAll('.heart');
+                const lastHeart = heartElements[lives];
+                if (lastHeart) {
+                    lastHeart.classList.add('lost');
+                    setTimeout(() => {
+                        lastHeart.classList.remove('lost');
+                        updateUI();
+                        showAchievement(getTranslation("feedback.timeUp"));
+                        if (lives > 0) {
+                            unlockedPuzzleId++;
+                            renderPuzzles();
+                            startTimer();
+                        } else { handleGameOver(); }
+                    }, 500);
+                } else {
+                    updateUI();
+                    showAchievement(getTranslation("feedback.timeUp"));
+                    if (lives > 0) {
+                        unlockedPuzzleId++;
+                        renderPuzzles();
+                        startTimer();
+                    } else { handleGameOver(); }
+                }
+            } else {
+                updateUI();
+            }
+            if (lives <= 0 && previousLives > 0) {
+                handleGameOver();
+            }
+        }
+    }, 1000);
+}
+
+function handleGameOver() {
+    clearInterval(timerInterval);
+    updateLeaderboard();
+    appEl.classList.add('blur-background');
+    gameOverScreen.style.display = 'flex';
+}
+
+function resetGame() {
+    score = 0; lives = 3; unlockedPuzzleId = 1; streak = 0; gameStarted = true;
+    gameOverScreen.style.display = 'none';
+    appEl.classList.remove('blur-background');
+    updateUI();
+    showGameElements();
+    renderPuzzles();
+    startTimer();
+}
+
+document.getElementById('try-again-btn').addEventListener('click', resetGame);
+
+document.getElementById('quit-btn').addEventListener('click', () => {
+    gameOverScreen.innerHTML = `
+        <h2>${getTranslation("ui.thanksForPlaying")}</h2>
+        <div class="game-over-credits">
+            <p>${getTranslation("ui.creditsCoder")}</p>
+            <p>${getTranslation("ui.creditsDesigner")}</p>
+            <p>${getTranslation("ui.creditsTester")}</p>
+            <br>
+            <p>${getTranslation("ui.creditsSpecialThanks")}</p>
+        </div>
+        <div class="game-over-buttons" style="margin-top: 30px;">
+            <button id="back-to-menu-btn">${getTranslation("ui.backToMenu")}</button>
+        </div>
+    `;
+});
+
+gameOverScreen.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'back-to-menu-btn') {
+        window.location.reload();
+    }
+});
+
+function startCountdown() {
+    countdownOverlay.style.display = 'flex';
+    let count = 3;
+    function doCount() {
+        countdownOverlay.innerHTML = `<span class="countdown-text">${count > 0 ? count : 'GO!'}</span>`;
+        if (count === 0) {
+            const music = document.getElementById('background-music');
+            const musicToggle = document.getElementById('music-toggle');
+            if (musicToggle.textContent === '🎵') {
+                music.volume = 0.3;
+                music.play();
+            }
+        }
+        count--;
+        if (count < -1) {
+            appEl.classList.remove('blur-background');
+            countdownOverlay.style.display = 'none';
+            showGameElements();
+            renderPuzzles();
+            startTimer();
+        } else {
+            setTimeout(doCount, 1000);
+        }
+    }
+    doCount();
+}
+
+function showGameElements() {
+    document.getElementById('progress-wrapper').style.display = 'block';
+    document.getElementById('game-stats-container').style.display = 'flex';
+    document.getElementById('puzzles').style.display = 'block';
+}
+
+document.getElementById('player-name').addEventListener('change', e => {
+    playerName = e.target.value.trim() || 'Player';
+    if (!gameStarted) {
+        gameStarted = true;
+        document.getElementById('player-name').disabled = true;
+        appEl.classList.add('blur-background');
+        startCountdown();
+    }
+});
+
+function triggerConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    const myConfetti = confetti.create(canvas, { resize: true, useWorker: true });
+    myConfetti({ particleCount: 150, spread: 160, origin: { y: 0.6 } });
+}
+
+function showAchievement(message) { /* ... Achievement logic ... */ }
+function updateLeaderboard() { /* ... Leaderboard logic ... */ }
+
+function initializeGame() {
+    if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light');
+    }
+    currentLanguage = localStorage.getItem('language') || 'en';
+    populateLanguageSelector();
+    applyTranslations();
+}
+
+initializeGame();
+
+// ===== SCRATCH TUTORIAL LOGIC =====
+const scratchSteps = document.querySelectorAll('#scratch-container .tutorial-step');
+const scratchPrevBtn = document.getElementById('scratch-prev-btn');
+const scratchNextBtn = document.getElementById('scratch-next-btn');
+const scratchProgressBar = document.getElementById('scratch-progress-bar');
+let currentScratchStep = 0;
+
+function showScratchStep(index) {
+    scratchSteps.forEach((step, i) => {
+        step.classList.toggle('active', i === index);
+    });
+    currentScratchStep = index;
+    scratchPrevBtn.disabled = index === 0;
+
+    if (index === scratchSteps.length - 1) {
+        scratchNextBtn.textContent = getTranslation("scratch.finish");
+    } else {
+        scratchNextBtn.textContent = getTranslation("scratch.next");
+    }
+    const progress = ((index + 1) / scratchSteps.length) * 100;
+    scratchProgressBar.style.width = `${progress}%`;
+}
+
+scratchNextBtn.addEventListener('click', () => {
+    if (currentScratchStep < scratchSteps.length - 1) {
+        showScratchStep(currentScratchStep + 1);
+    } else {
+        triggerConfetti();
+        unlockAllGames();
+    }
+});
+
+scratchPrevBtn.addEventListener('click', () => {
+    if (currentScratchStep > 0) {
+        showScratchStep(currentScratchStep - 1);
+    }
+});
+showScratchStep(0);
+
+
+// ===== MATH GAME LOGIC =====
+const math_questionEl = document.getElementById('math-question');
+const math_answerEl = document.getElementById('math-answer');
+const math_submitBtn = document.getElementById('submit-answer');
+const math_feedbackEl = document.getElementById('math-feedback');
+const math_scoreDisplay = document.getElementById('math-score-display');
+const math_resetBtn = document.getElementById('reset-math');
+let math_currentAnswer = 0;
+let math_score = 0;
+function math_updateScoreDisplay() { math_scoreDisplay.textContent = `${getTranslation("ui.score")}: ${math_score}`; }
+function math_generateQuestion() { const selectedOp = document.querySelector('input[name="math-op"]:checked').value; const selectedDiff = document.querySelector('input[name="math-diff"]:checked').value; let a, b, questionText; const ranges = { easy: { add: 10, subtract: 10, multiply: 5 }, medium: { add: 50, subtract: 50, multiply: 12 }, hard: { add: 100, subtract: 100, multiply: 15 } }; const range = ranges[selectedDiff]; if (selectedOp === 'add') { a = Math.floor(Math.random() * range.add) + 1; b = Math.floor(Math.random() * range.add) + 1; math_currentAnswer = a + b; questionText = `${a} + ${b} = ?`; } else if (selectedOp === 'subtract') { a = Math.floor(Math.random() * range.subtract) + 1; b = Math.floor(Math.random() * a) + 1; math_currentAnswer = a - b; questionText = `${a} - ${b} = ?`; } else if (selectedOp === 'multiply') { a = Math.floor(Math.random() * range.multiply) + 1; b = Math.floor(Math.random() * range.multiply) + 1; math_currentAnswer = a * b; questionText = `${a} × ${b} = ?`; } math_questionEl.textContent = questionText; math_answerEl.value = ''; math_feedbackEl.textContent = ''; }
+math_submitBtn.addEventListener('click', () => {
+    const userAnswer = Number(math_answerEl.value);
+    if (userAnswer === math_currentAnswer) {
+        playCorrectSound();
+        math_score += 10;
+        math_updateScoreDisplay();
+        math_feedbackEl.textContent = getTranslation("math.correct");
+        math_feedbackEl.style.color = "#1ed3a1";
+        triggerConfetti();
+        setTimeout(math_generateQuestion, 1000);
+    } else {
+        triggerScreenShake();
+        math_feedbackEl.textContent = getTranslation("math.tryAgain");
+        math_feedbackEl.style.color = "#ff6a6a";
+    }
+});
+math_resetBtn.addEventListener('click', () => { math_score = 0; math_updateScoreDisplay(); math_generateQuestion(); });
+document.querySelectorAll('input[name="math-op"], input[name="math-diff"]').forEach(radio => { radio.addEventListener('change', math_generateQuestion); });
+math_generateQuestion();
+
+// ===== ALL OTHER GAME LOGIC (RPS, HANGMAN) =====
+const rps_playerScoreEl = document.getElementById('rps-player-score');
+const rps_computerScoreEl = document.getElementById('rps-computer-score');
+const rps_playerChoiceEl = document.getElementById('rps-player-choice-display');
+const rps_computerChoiceEl = document.getElementById('rps-computer-choice-display');
+const rps_resultEl = document.getElementById('rps-result');
+const rps_buttons = { rock: document.getElementById('rps-rock'), paper: document.getElementById('rps-paper'), scissors: document.getElementById('rps-scissors') };
+const rps_emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
+let rps_playerScore = 0;
+let rps_computerScore = 0;
+function rps_play(userChoice) { const choices = ['rock', 'paper', 'scissors']; const computerChoice = choices[Math.floor(Math.random() * choices.length)]; let result = ''; rps_resultEl.style.color = ""; rps_playerChoiceEl.textContent = rps_emojis[userChoice]; rps_computerChoiceEl.textContent = rps_emojis[computerChoice]; rps_playerChoiceEl.classList.add('rps-reveal'); rps_computerChoiceEl.classList.add('rps-reveal'); setTimeout(() => { rps_playerChoiceEl.classList.remove('rps-reveal'); rps_computerChoiceEl.classList.remove('rps-reveal'); }, 400); if (userChoice === computerChoice) { result = getTranslation("rps.tie"); } else if ( (userChoice === 'rock' && computerChoice === 'scissors') || (userChoice === 'paper' && computerChoice === 'rock') || (userChoice === 'scissors' && computerChoice === 'paper') ) { playCorrectSound(); result = getTranslation("rps.win"); rps_playerScore++; rps_resultEl.style.color = "#1ed3a1"; } else { result = getTranslation("rps.lose"); rps_computerScore++; rps_resultEl.style.color = "#ff6a6a"; } rps_resultEl.textContent = result; rps_playerScoreEl.textContent = `${getTranslation("rps.player")}: ${rps_playerScore}`; rps_computerScoreEl.textContent = `${getTranslation("rps.computer")}: ${rps_computerScore}`; }
+Object.keys(rps_buttons).forEach(key => { rps_buttons[key].addEventListener('click', () => rps_play(key)); });
+
+const hangman_word_lists = {
+    regular: ['javascript', 'interface', 'programming', 'developer', 'function', 'variable', 'algorithm', 'database', 'framework', 'hypertext', 'stylesheet', 'responsive'],
+    maths: ['algebra', 'calculus', 'geometry', 'trigonometry', 'equation', 'integer', 'fraction', 'decimal', 'exponent', 'logarithm', 'probability']
+};
+const hangman_wordEl = document.getElementById('hangman-word');
+const hangman_keyboardEl = document.getElementById('hangman-keyboard');
+const hangman_messageEl = document.getElementById('hangman-message');
+const hangman_manParts = document.querySelectorAll('#hangman-head, #hangman-body, #hangman-left-arm, #hangman-right-arm, #hangman-left-leg, #hangman-right-leg');
+let hangman_chosenWord = '';
+let hangman_guessedLetters = [];
+let hangman_wrongGuesses = 0;
+function hangman_resetGame() {
+    const selectedMode = document.getElementById('hangman-mode-select').value;
+    const currentWordList = hangman_word_lists[selectedMode];
+    hangman_chosenWord = currentWordList[Math.floor(Math.random() * currentWordList.length)];
+    hangman_guessedLetters = [];
+    hangman_wrongGuesses = 0;
+    hangman_messageEl.textContent = '';
+    hangman_messageEl.style.color = '';
+    hangman_wordEl.textContent = hangman_chosenWord.split('').map(() => '_').join('');
+    hangman_manParts.forEach(part => part.classList.remove('visible'));
+    hangman_keyboardEl.innerHTML = '';
+    for (let i = 65; i <= 90; i++) {
+        const btn = document.createElement('button');
+        const letter = String.fromCharCode(i);
+        btn.textContent = letter;
+        btn.addEventListener('click', () => hangman_handleGuess(letter.toLowerCase()));
+        hangman_keyboardEl.appendChild(btn);
+    }
+}
+function hangman_handleGuess(letter) { if (hangman_guessedLetters.includes(letter)) return; hangman_guessedLetters.push(letter); const button = [...hangman_keyboardEl.children].find(btn => btn.textContent.toLowerCase() === letter); if(button) button.disabled = true; if (hangman_chosenWord.includes(letter)) { if(button) button.classList.add('correct'); hangman_updateWordDisplay(); } else { triggerScreenShake(); if(button) button.classList.add('incorrect'); hangman_wrongGuesses++; hangman_updateFigure(); } hangman_checkGameState(); }
+function hangman_updateWordDisplay() { hangman_wordEl.textContent = hangman_chosenWord .split('') .map(letter => (hangman_guessedLetters.includes(letter) ? letter : '_')) .join(''); }
+function hangman_updateFigure() { if (hangman_wrongGuesses > 0) { hangman_manParts[hangman_wrongGuesses - 1].classList.add('visible'); } }
+function hangman_checkGameState() { const isWinner = hangman_chosenWord.split('').every(letter => hangman_guessedLetters.includes(letter)); if (isWinner) { playCorrectSound(); hangman_messageEl.textContent = getTranslation("hangman.win"); hangman_messageEl.style.color = "#1ed3a1"; hangman_disableKeyboard(); } else if (hangman_wrongGuesses >= hangman_manParts.length) { hangman_messageEl.textContent = `${getTranslation("hangman.lose")} "${hangman_chosenWord}".`; hangman_messageEl.style.color = "#ff6a6a"; hangman_wordEl.textContent = hangman_chosenWord; hangman_disableKeyboard(); } }
+function hangman_disableKeyboard() { [...hangman_keyboardEl.children].forEach(btn => btn.disabled = true); }
+document.getElementById('hangman-reset').addEventListener('click', hangman_resetGame);
+document.getElementById('hangman-mode-select').addEventListener('change', hangman_resetGame);
+hangman_resetGame();
+
+
+// ===== GENERAL APP LOGIC =====
+document.getElementById('theme-toggle').addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+});
+
+const music = document.getElementById('background-music');
+document.getElementById('music-toggle').addEventListener('click', () => {
+    if (music.paused) {
+        music.play(); music.volume = 0.3;
+        document.getElementById('music-toggle').textContent = '🎵';
+    } else {
+        music.pause();
+        document.getElementById('music-toggle').textContent = '🔇';
+    }
+});
+</script>
+
+<script>
+// ===== SPACE INVADERS GAME SCRIPT =====
+(function() {
+    const canvas = document.getElementById('gameCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const shootSound = document.getElementById('shootSound');
+    const invaderDieSound = document.getElementById('invaderDieSound');
+    const playerDieSound = document.getElementById('playerDieSound');
+    const assets = {};
+    const svgStrings = {
+        player: `<svg viewBox="0 0 50 30" xmlns="http://www.w3.org/2000/svg"><path d="M25 0 L50 30 H0 Z" fill="#4caf50"/><rect x="22" y="10" width="6" height="10" fill="black"/></svg>`,
+        invader1: `<svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg"><path d="M5 15 a20 15 0 0 1 30 0 v10 H5 Z" fill="#ffeb3b"/><rect x="12" y="18" width="5" height="5" fill="black"/><rect x="23" y="18" width="5" height="5" fill="black"/><path d="M0 10 H10 V20 H0 Z M30 10 H40 V20 H30 Z" fill="#ffeb3b"/></svg>`,
+        invader2: `<svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="30" height="20" rx="5" fill="#2196f3"/><rect x="12" y="12" width="5" height="5" fill="black"/><rect x="23" y="12" width="5" height="5" fill="black"/><path d="M0 15 H5 V25 H0 Z M35 15 H40 V25 H35 Z" fill="#2196f3"/><path d="M5 25 l-5 5 h10 l-5-5 Z M35 25 l5 5 h-10 l5-5 Z" fill="#2196f3"/></svg>`,
+        invader3: `<svg viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg"><path d="M5 10 a15 15 0 0 1 30 0 v15 a5 5 0 0 1 -5 5 H10 a5 5 0 0 1 -5 -5 Z" fill="#f44336"/><rect x="10" y="15" width="5" height="5" fill="black"/><rect x="25" y="15" width="5" height="5" fill="black"/><rect y="20" width="40" height="5" fill="#f44336"/><rect x="5" y="25" width="5" height="5" fill="#f44336"/><rect x="15" y="25" width="5" height="5" fill="#f44336"/><rect x="25" y="25" width="5" height="5" fill="#f44336"/><rect x="35" y="25" width="5" height="5" fill="#f44336"/></svg>`,
+        ufo: `<svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><path d="M5,15 a25,10 0 1,1 50,0" fill="#D40000"/><path d="M10,15 a20,5 0 1,1 40,0" fill="#FF5555"/><rect x="20" y="5" width="20" height="10" rx="5" fill="#FFFFFF" /></svg>`
+    };
+
+    function loadAssets() {
+        let loaded = 0;
+        const total = Object.keys(svgStrings).length;
+        return new Promise((resolve) => {
+            for (const key in svgStrings) {
+                const img = new Image();
+                const encoded = btoa(svgStrings[key]);
+                img.src = 'data:image/svg+xml;base64,' + encoded;
+                img.onload = () => { assets[key] = img; loaded++; if (loaded === total) { resolve(); } };
+            }
+        });
+    }
+
+    const CANVAS_WIDTH = canvas.width, CANVAS_HEIGHT = canvas.height, PLAYER_WIDTH = 50, PLAYER_HEIGHT = 30, PLAYER_SPEED = 7, INVADER_ROWS = 5, INVADER_COLS = 11, INVADER_WIDTH = 40, INVADER_HEIGHT = 30, INVADER_H_SPACING = 20, INVADER_V_SPACING = 20, INVADER_INIT_X_OFFSET = 60, INVADER_INIT_Y_OFFSET = 80, INVADER_MOVE_X = 10, INVADER_MOVE_Y = 30, BULLET_WIDTH = 4, BULLET_HEIGHT = 15, PLAYER_BULLET_SPEED = 10, INVADER_BULLET_SPEED = 5, UFO_WIDTH = 60, UFO_HEIGHT = 30, UFO_SPEED = 3, EXPLOSION_DURATION = 200;
+    let player, invaders, invaderBullets, shields, invaderScore, gameOver, invaderGameStarted, invaderDirection, invaderMoveInterval, lastInvaderMoveTime, playerBullet, keys, ufo, explosions, ufoSpawnTimer, animationFrameId;
+
+    function initGameState() { player = { x: CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2, y: CANVAS_HEIGHT - PLAYER_HEIGHT - 30, width: PLAYER_WIDTH, height: PLAYER_HEIGHT, lives: 3, alive: true }; invaders = []; invaderBullets = []; shields = []; explosions = []; ufo = null; ufoSpawnTimer = 0; invaderScore = 0; gameOver = false; invaderGameStarted = false; invaderDirection = 1; invaderMoveInterval = 1000; lastInvaderMoveTime = 0; playerBullet = null; keys = {}; }
+    function initInvaders() { invaders = []; for (let row = 0; row < INVADER_ROWS; row++) for (let col = 0; col < INVADER_COLS; col++) { const x = INVADER_INIT_X_OFFSET + col * (INVADER_WIDTH + INVADER_H_SPACING); const y = INVADER_INIT_Y_OFFSET + row * (INVADER_HEIGHT + INVADER_V_SPACING); let image; if (row < 1) image = assets.invader1; else if (row < 3) image = assets.invader2; else image = assets.invader3; invaders.push({ x, y, width: INVADER_WIDTH, height: INVADER_HEIGHT, alive: true, row, col, image }); } }
+    function initShields() { shields = []; const shieldWidth = 80, shieldHeight = 40, shieldCount = 4, shieldY = CANVAS_HEIGHT - 150; const spacing = (CANVAS_WIDTH - (shieldCount * shieldWidth)) / (shieldCount + 1); for (let i = 0; i < shieldCount; i++) { const shieldX = spacing + i * (shieldWidth + spacing); const shield = { x: shieldX, y: shieldY, width: shieldWidth, height: shieldHeight, blocks: [] }; const blockW = 10, blockH = 10; for (let r = 0; r < shieldHeight / blockH; r++) for (let c = 0; c < shieldWidth / blockW; c++) { if (!((r < 1 && c > 1 && c < 6) || (r === 1 && c > 2 && c < 5))) { shield.blocks.push({ x: shieldX + c * blockW, y: shieldY + r * blockH, width: blockW, height: blockH, alive: true }); } } shields.push(shield); } }
+    function drawPlayer() { if (player.alive && assets.player) ctx.drawImage(assets.player, player.x, player.y, player.width, player.height); }
+    function drawInvaders() { invaders.forEach(inv => { if (inv.alive && inv.image) ctx.drawImage(inv.image, inv.x, inv.y, inv.width, inv.height); }); }
+    function drawUFO() { if (ufo && ufo.alive && assets.ufo) ctx.drawImage(assets.ufo, ufo.x, ufo.y, ufo.width, ufo.height); }
+    function drawExplosions() { explosions.forEach(exp => { ctx.fillStyle = Math.random() < 0.5 ? 'yellow' : 'red'; ctx.fillRect(exp.x, exp.y, exp.width, exp.height); }); }
+    function drawBullets() { if (playerBullet) { ctx.fillStyle = 'white'; ctx.fillRect(playerBullet.x, playerBullet.y, BULLET_WIDTH, BULLET_HEIGHT); } ctx.fillStyle = 'red'; invaderBullets.forEach(b => ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT)); }
+    function drawShields() { ctx.fillStyle = '#33ff33'; shields.forEach(shield => shield.blocks.forEach(block => { if (block.alive) ctx.fillRect(block.x, block.y, block.width, block.height); })); }
+    function drawUI() { ctx.fillStyle = 'white'; ctx.font = "20px Arial"; ctx.textAlign = "left"; ctx.fillText(`${getTranslation("ui.score")}: ${invaderScore}`, 10, 25); ctx.fillText(`${getTranslation("ui.lives")}: ${player.lives}`, CANVAS_WIDTH - 120, 25); }
+    function drawMessage(message, subMessage = "") { ctx.fillStyle = 'white'; ctx.textAlign = "center"; ctx.font = "64px Arial"; ctx.fillText(message, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2); if (subMessage) { ctx.font = "24px Arial"; ctx.fillText(subMessage, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50); } }
+    function updatePlayer() { if (!player.alive) return; if (keys['arrowleft'] || keys['a']) { player.x -= PLAYER_SPEED; if (player.x < 0) player.x = 0; } if (keys['arrowright'] || keys['d']) { player.x += PLAYER_SPEED; if (player.x + player.width > CANVAS_WIDTH) player.x = CANVAS_WIDTH - player.width; } if (playerBullet) { playerBullet.y -= PLAYER_BULLET_SPEED; if (playerBullet.y < 0) playerBullet = null; } }
+    function updateInvaders(deltaTime) { lastInvaderMoveTime += deltaTime; const livingInvaders = invaders.filter(inv => inv.alive); if (livingInvaders.length === 0) return; const speedMultiplier = 1 + (invaders.length - livingInvaders.length) / invaders.length * 2; const currentMoveInterval = invaderMoveInterval / speedMultiplier; if (lastInvaderMoveTime > currentMoveInterval) { lastInvaderMoveTime = 0; let shouldDrop = false; livingInvaders.forEach(inv => { if ((inv.x + inv.width >= CANVAS_WIDTH && invaderDirection === 1) || (inv.x <= 0 && invaderDirection === -1)) shouldDrop = true; }); if (shouldDrop) { invaderDirection *= -1; invaders.forEach(inv => inv.y += INVADER_MOVE_Y); } else { invaders.forEach(inv => inv.x += INVADER_MOVE_X * invaderDirection); } const shooters = []; for (let col = 0; col < INVADER_COLS; col++) { const columnInvaders = livingInvaders.filter(inv => inv.col === col).sort((a, b) => b.y - a.y); if (columnInvaders.length > 0) shooters.push(columnInvaders[0]); } if (shooters.length > 0 && Math.random() < 0.2 * speedMultiplier) { const randomShooter = shooters[Math.floor(Math.random() * shooters.length)]; invaderBullets.push({ x: randomShooter.x + randomShooter.width / 2 - BULLET_WIDTH / 2, y: randomShooter.y + randomShooter.height }); } } }
+    function updateUFO(deltaTime) { ufoSpawnTimer += deltaTime; if (!ufo && ufoSpawnTimer > 10000 && Math.random() < 0.01) { ufo = { x: 0, y: 50, width: UFO_WIDTH, height: UFO_HEIGHT, speed: UFO_SPEED, alive: true }; ufoSpawnTimer = 0; } if (ufo && ufo.alive) { ufo.x += ufo.speed; if (ufo.x > CANVAS_WIDTH) ufo = null; } }
+    function updateExplosions(deltaTime) { for (let i = explosions.length - 1; i >= 0; i--) { explosions[i].time += deltaTime; if (explosions[i].time > EXPLOSION_DURATION) explosions.splice(i, 1); } }
+    function updateBullets() { invaderBullets.forEach((b, i) => { b.y += INVADER_BULLET_SPEED; if (b.y > CANVAS_HEIGHT) invaderBullets.splice(i, 1); }); }
+    function collision(a, b) { return a.x < b.x + b.width && a.x + (a.width || BULLET_WIDTH) > b.x && a.y < b.y + b.height && a.y + (a.height || BULLET_HEIGHT) > b.y; }
+    function checkCollisions() { if (playerBullet) { for (let inv of invaders) if (inv.alive && collision(playerBullet, inv)) { inv.alive = false; playerBullet = null; invaderScore += 10; invaderDieSound.play(); explosions.push({ ...inv, time: 0 }); break; } } if (playerBullet && ufo && ufo.alive && collision(playerBullet, ufo)) { ufo.alive = false; playerBullet = null; invaderScore += 100; invaderDieSound.play(); explosions.push({ ...ufo, time: 0 }); } for (let i = invaderBullets.length - 1; i >= 0; i--) if (player.alive && collision(invaderBullets[i], player)) { invaderBullets.splice(i, 1); handlePlayerDeath(); } if (playerBullet) for (const shield of shields) for (const block of shield.blocks) if (block.alive && collision(playerBullet, block)) { block.alive = false; playerBullet = null; return; } for (let i = invaderBullets.length - 1; i >= 0; i--) { let hit = false; for (const shield of shields) { for (const block of shield.blocks) if (block.alive && collision(invaderBullets[i], block)) { block.alive = false; invaderBullets.splice(i, 1); hit = true; break; } if (hit) break; } } invaders.forEach(inv => { if (inv.alive) { shields.forEach(shield => shield.blocks.forEach(block => { if (block.alive && collision(inv, block)) block.alive = false; })); if (player.alive && (collision(inv, player) || inv.y + inv.height >= player.y)) gameOver = true; } }); }
+    function handlePlayerDeath() { player.lives--; playerDieSound.play(); if (player.lives <= 0) { player.alive = false; gameOver = true; } else { player.alive = false; setTimeout(() => { player.x = CANVAS_WIDTH / 2 - PLAYER_WIDTH / 2; player.alive = true; }, 1000); } }
+    function checkWin() { return invaders.every(inv => !inv.alive); }
+    function restartGame() { if (animationFrameId) cancelAnimationFrame(animationFrameId); initGameState(); initInvaders(); initShields(); showStartScreen(); }
+    let lastTimestamp = 0;
+    function gameLoop(timestamp) { if (!invaderGameStarted) { showStartScreen(); return; } const deltaTime = timestamp - lastTimestamp; lastTimestamp = timestamp; ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); if (!gameOver) { updatePlayer(); updateInvaders(deltaTime); updateUFO(deltaTime); updateBullets(); updateExplosions(deltaTime); checkCollisions(); } drawPlayer(); drawInvaders(); drawUFO(); drawBullets(); drawShields(); drawExplosions(); drawUI(); if (gameOver) { drawMessage(getTranslation("ui.gameOverTitle"), "Press any key to restart"); } else if (checkWin()) { drawMessage("YOU WIN!", "Press any key to restart"); } else { animationFrameId = requestAnimationFrame(gameLoop); } }
+    function showStartScreen() { ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); drawUI(); drawInvaders(); drawPlayer(); drawShields(); drawMessage("SPACE INVADERS", "Press any key to Start"); }
+    function handleKeyDown(e) { if (!invadersContainer.style.display || invadersContainer.style.display === 'none') return; if (!invaderGameStarted) { invaderGameStarted = true; lastTimestamp = performance.now(); requestAnimationFrame(gameLoop); return; } if (gameOver || checkWin()) { restartGame(); return; } keys[e.key.toLowerCase()] = true; if ((e.key === ' ' || e.key === 'Spacebar') && player.alive && !playerBullet) { e.preventDefault(); playerBullet = { x: player.x + player.width / 2 - BULLET_WIDTH / 2, y: player.y }; shootSound.play(); } }
+    function handleKeyUp(e) { keys[e.key.toLowerCase()] = false; }
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    loadAssets().then(() => { initGameState(); initInvaders(); initShields(); showStartScreen(); });
+})();
+</script>
+
+</body>
+</html>
